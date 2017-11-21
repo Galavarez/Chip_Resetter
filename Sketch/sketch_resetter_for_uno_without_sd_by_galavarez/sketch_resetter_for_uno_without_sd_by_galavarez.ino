@@ -1,5 +1,11 @@
 /* 
 Auto Resetter wthiout sd card by Galavarez
+* Версия 21.11.2017 
+- Переписал проверку дампа после заливки его в чип
+
+* Версия 14.11.2017 
+- Добавил вывод дампа из чипа на экран по кнопки вниз первых 128 байт
+
 * Версия 03.11.2017 11:17
 - Добавил чип Xerox PE 220
 
@@ -43,6 +49,9 @@ byte address_eeprom;
 
 // Храним номер чипа
 byte global_id = 1;
+
+// Храним размер чипа
+int global_size_dump = 0;
 
 // Переменная для запоминания состояние кнопки, защита от повторного срабатывания
 boolean global_button_press = false; // true - кнопка нажата
@@ -243,7 +252,7 @@ void setup()
   pinMode(POWER_PIN, OUTPUT);
 
   // Показываем первый чип на экране
-  db_name(global_id);
+  db_name(global_id); 
 }
 
 /****************************** LOOP ******************************/
@@ -275,16 +284,16 @@ void loop()
       // Подаем питание и сканируем шину i2c на наличие чипа
       power_on_for_chip();
             
-      lcd.clear();
-      lcd.print(F("FIRMWARE CHIP"));
-      lcd.setCursor(0, 1);      
-      lcd.blink(); // влючаем мигание курсора для информативности
+      //lcd.clear();
+      //lcd.print(F("FIRMWARE CHIP"));
+      //lcd.setCursor(0, 1);      
+      //lcd.blink(); // влючаем мигание курсора для информативности
       
       // Прошивка чипа
       db_firmware(global_id);
 
-      lcd.print(F("DONE !!!"));
-      lcd.noBlink(); // отключаем мигание курсора
+      //lcd.print(F("DONE !!!"));
+      //lcd.noBlink(); // отключаем мигание курсора
 
       // Тест данных
       test_chip(128);
@@ -301,13 +310,14 @@ void loop()
     if (analog_debonce(400) == true) // делаем проверку от дребезга кнопок
     {
       Serial.println(F("CLICK BUTTON DOWN"));
+      view_on_lcd_128_byte();
     }
   }
   else if (analog_number < 600 && global_button_press == false) // Если это кнопка Left и другие кнопки не нажаты то
   {
     if (analog_debonce(600) == true) // делаем проверку от дребезга кнопок
     {
-       Serial.println(F("CLICK BUTTON LEFT"));
+      Serial.println(F("CLICK BUTTON LEFT"));
       // Уменьшаем счетчик 
       global_id--; 
       // Показываем на экране
@@ -394,31 +404,38 @@ void db_firmware(byte id)
   switch (id)
   {
     case 1:
-      // Прошиваем чип => указываем переменную и ее размер 
-      firmware(dump_ricoh_aficio_sp_101e_sp_100, sizeof(dump_ricoh_aficio_sp_101e_sp_100));
+      global_size_dump = sizeof(dump_ricoh_aficio_sp_101e_sp_100); // Размер дампа
+      firmware(dump_ricoh_aficio_sp_101e_sp_100, global_size_dump); // Прошиваем чип => указываем переменную и ее размер 
       break;
     case 2:
-      firmware(dump_ricoh_aficio_sp_110e_sp_111, sizeof(dump_ricoh_aficio_sp_110e_sp_111));
+      global_size_dump = sizeof(dump_ricoh_aficio_sp_110e_sp_111);
+      firmware(dump_ricoh_aficio_sp_110e_sp_111, global_size_dump);
       break;      
     case 3: 
-      firmware(dump_ricoh_aficio_sp_150, sizeof(dump_ricoh_aficio_sp_150));
+      global_size_dump = sizeof(dump_ricoh_aficio_sp_150);
+      firmware(dump_ricoh_aficio_sp_150, global_size_dump);
       break;
     case 4:
-      firmware(dump_ricoh_aficio_sp_300, sizeof(dump_ricoh_aficio_sp_300));
+      global_size_dump = sizeof(dump_ricoh_aficio_sp_300);
+      firmware(dump_ricoh_aficio_sp_300, global_size_dump);
       break;     
     case 5:
-      firmware(dump_ricoh_aficio_sp_311, sizeof(dump_ricoh_aficio_sp_311));
+      global_size_dump = sizeof(dump_ricoh_aficio_sp_311);
+      firmware(dump_ricoh_aficio_sp_311, global_size_dump);
       break;
     case 6:
-      firmware(dump_samsung_scx_4200, sizeof(dump_samsung_scx_4200));      
+      global_size_dump = sizeof(dump_samsung_scx_4200);
+      firmware(dump_samsung_scx_4200, global_size_dump);      
       change_crum_one(63); // Указываем номер байта младшего разряда серийного номера 
       break;
     case 7:
-      firmware(dump_xerox_wc_3119, sizeof(dump_xerox_wc_3119));      
+      global_size_dump = sizeof(dump_xerox_wc_3119);
+      firmware(dump_xerox_wc_3119, global_size_dump);      
       change_crum_one(63);  
       break;
     case 8:
-      firmware(dump_xerox_pe_220, sizeof(dump_xerox_pe_220));      
+      global_size_dump = sizeof(dump_xerox_pe_220);
+      firmware(dump_xerox_pe_220, global_size_dump);      
       change_crum_one(63); 
       break;
   }
@@ -487,6 +504,10 @@ void search_address_chip()
 /****************************** ПРОШИВКА ЧИПА ******************************/
 void firmware(const byte *name_dump, int number_cycle)
 {
+  lcd.clear();
+  lcd.print(F("FIRMWARE CHIP"));
+  lcd.setCursor(0, 1);      
+  lcd.blink(); // влючаем мигание курсора для информативности
   Serial.println(F("FIRMWARE START"));
   Eeprom24C04_16 eeprom(address_eeprom);
   eeprom.initialize();  
@@ -500,6 +521,7 @@ void firmware(const byte *name_dump, int number_cycle)
     //Serial.println(eeprom.readByte(i), HEX);
     
     // Проверка данных на запись, если они не равны показываем ошибку
+    /* Почему-то не работает
     if(pgm_read_byte(&name_dump[i]) != eeprom.readByte(i))
     {
       lcd.clear();
@@ -509,6 +531,7 @@ void firmware(const byte *name_dump, int number_cycle)
       Serial.print(F("ERROR WRITE DUMP"));
       break;      
     }
+    */
     //Serial.print(F("number byte = "));
     //Serial.print(i);
     //Serial.print(F(" value byte = "));
@@ -517,6 +540,11 @@ void firmware(const byte *name_dump, int number_cycle)
     //Serial.println(eeprom.readByte(i), HEX);
   }
   Serial.println(F("FIRMWARE END"));
+  lcd.print(F("DONE !!!"));
+  lcd.noBlink(); // отключаем мигание курсора
+  
+  // Проверка чипа
+  verification_dump(name_dump, number_cycle);
 }
 
 /****************************** ГЕНЕРАТОР СЕРИЙНОГО НОМЕРА ******************************/
@@ -643,3 +671,82 @@ void test_chip(int number_cycle)
   }
   Serial.println(" ");
 }
+
+/************************************* ПОКАЗ ДАМПА НА ЭКРАН *************************************/
+void view_on_lcd_128_byte()
+{
+  power_on_for_chip();
+  Eeprom24C04_16 eeprom(address_eeprom);
+  eeprom.initialize();  
+  //char c = (char)eeprom.readByte(0); // получил hex to ascii
+  int byte_in_str = 16;
+  int sizeof_chip = 128;
+  int num_str_in_chip = sizeof_chip / byte_in_str;
+
+  for(int i_1 = 0; i_1 < num_str_in_chip; i_1++)
+  {
+      lcd.clear();
+      lcd.print("Stroka # ");
+      lcd.print(i_1);
+      for (int i_2 = 0; i_2 < 17; i_2++)
+      {
+        lcd.setCursor(i_2,1);
+        char a = (char)eeprom.readByte(i_2 + i_1 * byte_in_str); // Получаем ascii
+        char b; // 
+        if (a < 32){ b = 32; } // если a 0 то ставим пробел HEX(32)
+        else{ b = a; }
+        lcd.print(b); // 15 31 47 63 79 95 111 127
+        //lcd.setCursor(i_2,0);
+        //Serial.println(eeprom.readByte(i_2 + i_1 * byte_in_str));
+      }
+      delay(1000);
+  }
+  lcd.clear();
+  /*
+  for (int i=0; i < 17; i++)
+  {
+    char a = (char)eeprom.readByte(i+i2); // Получаем ascii
+    char b; // 
+    if (a < 32){ b = 32; } // если a 0 то ставим пробел HEX(32)
+    else{ b = a; }
+    lcd.print(b); // 15 31 47 63 79 95 111 127
+    lcd.setCursor(i,0);
+    Serial.println(eeprom.readByte(i+i2));
+  }
+  */
+  power_off_for_chip();
+
+  // Показываем текущий чип на экране
+  db_name(global_id); 
+}
+
+/************************************* ПРОВЕРКА ДАМПА ПОСЛЕ ПРОШИВКИ *************************************/
+void verification_dump(const byte *name_dump, int number_cycle)
+{
+  lcd.clear();
+  lcd.print(F("VERIFICATION"));
+  lcd.setCursor(0,1);
+  Eeprom24C04_16 eeprom(address_eeprom);
+  eeprom.initialize(); 
+  for(int i = 0; i < number_cycle; i++) // Циклы
+  {
+    if(pgm_read_byte(&name_dump[i]) != eeprom.readByte(i))
+    {
+      lcd.print(F("ERROR"));
+      Serial.print(F("VERIFICATION ERROR"));
+      delay(1000);
+      break;      
+    }
+    //Serial.print(F("number byte = "));
+    //Serial.print(i);
+    //Serial.print(F(" value byte = "));
+    //Serial.print(pgm_read_byte(&name_dump[i]), HEX);
+    //Serial.print(F(" eeprom read byte = "));
+    //Serial.println(eeprom.readByte(i), HEX);
+  }
+  lcd.print(F("GOOD"));  
+  Serial.println(F("VERIFICATION GOOD")); 
+  delay(500);
+}
+
+
