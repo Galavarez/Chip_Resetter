@@ -1,7 +1,11 @@
 /* 
 Auto Resetter wthiout sd card by Galavarez
+* Версия 25.11.2017 
+- Добавил чип Ricoh SP 200, 202, 203 на 2.6К
+
 * Версия 21.11.2017 
 - Переписал проверку дампа после заливки его в чип
+- Добавил распиновку чипа в правом верхнем углу G - gnd, V - vcc, D - data, C - clock
 
 * Версия 14.11.2017 
 - Добавил вывод дампа из чипа на экран по кнопки вниз первых 128 байт
@@ -213,6 +217,32 @@ const PROGMEM byte dump_ricoh_aficio_sp_311[128] = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
+// Ricoh R-SP200HS-2.6K for Ricoh SP 200,202,203
+const PROGMEM byte dump_ricoh_sp_200_202_203[256] = {
+  0x21, 0x00, 0x01, 0x04, 0x03, 0x01, 0x01, 0x00, 0x00, 0x00, 0x34, 0x30,
+  0x37, 0x32, 0x35, 0x37, 0x13, 0x07, 0x4D, 0x43, 0x11, 0x00, 0x22, 0x32,
+  0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF
+};
+
 // XEROX PE 220 2k
 const PROGMEM byte dump_xerox_pe_220[256] = {
   0xA8, 0xCF, 0x58, 0x45, 0x52, 0x4F, 0x58, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -283,26 +313,18 @@ void loop()
        Serial.println(F("CLICK BUTTON UP")); // UPLOAD -- закачиваем дамп
       // Подаем питание и сканируем шину i2c на наличие чипа
       power_on_for_chip();
-            
-      //lcd.clear();
-      //lcd.print(F("FIRMWARE CHIP"));
-      //lcd.setCursor(0, 1);      
-      //lcd.blink(); // влючаем мигание курсора для информативности
       
       // Прошивка чипа
-      db_firmware(global_id);
-
-      //lcd.print(F("DONE !!!"));
-      //lcd.noBlink(); // отключаем мигание курсора
-
-      // Тест данных
-      test_chip(128);
+      db_firmware(global_id);   
       
       // Выключаем питание
       power_off_for_chip();
 
       // Возврат в меню
       db_name(global_id);
+
+      // Тест данных
+      test_chip_on_pc(128);
     }
   }
   else if (analog_number < 400 && global_button_press == false) // Если это кнопка Down и другие кнопки не нажаты то
@@ -346,49 +368,55 @@ void db_name(byte id)
   {    
     case 1:
       lcd.clear();
-      lcd.print(F("RICOH"));
+      lcd.print(F("RICOH       GVCD"));
       lcd.setCursor(0,1);
       lcd.print(F("SP 100 (SP 101E)"));
       break;
     case 2:
       lcd.clear();
-      lcd.print(F("RICOH"));
+      lcd.print(F("RICOH       GVCD"));
       lcd.setCursor(0,1);
       lcd.print(F("SP 111 (SP 110E)"));
       break;      
     case 3:
       lcd.clear();
-      lcd.print(F("RICOH"));
+      lcd.print(F("RICOH       GVCD"));
       lcd.setCursor(0,1);
       lcd.print(F("SP 150"));
       break;
     case 4:
       lcd.clear();
-      lcd.print(F("RICOH"));
+      lcd.print(F("RICOH       GVCD"));
       lcd.setCursor(0,1);
-      lcd.print(F("SP 300"));
+      lcd.print(F("SP 200 202 203"));
       break;
     case 5:
       lcd.clear();
-      lcd.print(F("RICOH"));
+      lcd.print(F("RICOH       GVDC"));
+      lcd.setCursor(0,1);
+      lcd.print(F("SP 300"));
+      break;    
+    case 6:
+      lcd.clear();
+      lcd.print(F("RICOH       GVCD"));
       lcd.setCursor(0,1);
       lcd.print(F("SP 311"));
       break;
-    case 6:
+    case 7:
       lcd.clear();
-      lcd.print(F("SAMSUNG"));
+      lcd.print(F("SAMSUNG     VDCG"));
       lcd.setCursor(0,1);
       lcd.print(F("SCX 4200"));
       break;
-    case 7:
+    case 8:
       lcd.clear();
-      lcd.print(F("XEROX"));
+      lcd.print(F("XEROX       VDCG"));
       lcd.setCursor(0,1);
       lcd.print(F("WC 3119"));
       break;
-    case 8:
+    case 9:
       lcd.clear();
-      lcd.print(F("XEROX"));
+      lcd.print(F("XEROX       VDCG"));
       lcd.setCursor(0,1);
       lcd.print(F("PE 220"));
       break;
@@ -416,24 +444,28 @@ void db_firmware(byte id)
       firmware(dump_ricoh_aficio_sp_150, global_size_dump);
       break;
     case 4:
+      global_size_dump = sizeof(dump_ricoh_sp_200_202_203);
+      firmware(dump_ricoh_sp_200_202_203, global_size_dump);
+      break;
+    case 5:
       global_size_dump = sizeof(dump_ricoh_aficio_sp_300);
       firmware(dump_ricoh_aficio_sp_300, global_size_dump);
       break;     
-    case 5:
+    case 6:
       global_size_dump = sizeof(dump_ricoh_aficio_sp_311);
       firmware(dump_ricoh_aficio_sp_311, global_size_dump);
       break;
-    case 6:
+    case 7:
       global_size_dump = sizeof(dump_samsung_scx_4200);
       firmware(dump_samsung_scx_4200, global_size_dump);      
       change_crum_one(63); // Указываем номер байта младшего разряда серийного номера 
       break;
-    case 7:
+    case 8:
       global_size_dump = sizeof(dump_xerox_wc_3119);
       firmware(dump_xerox_wc_3119, global_size_dump);      
       change_crum_one(63);  
       break;
-    case 8:
+    case 9:
       global_size_dump = sizeof(dump_xerox_pe_220);
       firmware(dump_xerox_pe_220, global_size_dump);      
       change_crum_one(63); 
@@ -519,19 +551,6 @@ void firmware(const byte *name_dump, int number_cycle)
     //Serial.print(pgm_read_byte(&name_dump[i]), HEX);
     //Serial.print(F(" = "));
     //Serial.println(eeprom.readByte(i), HEX);
-    
-    // Проверка данных на запись, если они не равны показываем ошибку
-    /* Почему-то не работает
-    if(pgm_read_byte(&name_dump[i]) != eeprom.readByte(i))
-    {
-      lcd.clear();
-      lcd.print(F("ERROR"));
-      lcd.setCursor(0,1);
-      lcd.print(F("WRITE DUMP"));
-      Serial.print(F("ERROR WRITE DUMP"));
-      break;      
-    }
-    */
     //Serial.print(F("number byte = "));
     //Serial.print(i);
     //Serial.print(F(" value byte = "));
@@ -649,8 +668,9 @@ String insert_null(byte num)
 }
 
 
-void test_chip(int number_cycle)
+void test_chip_on_pc(int number_cycle)
 {
+  power_on_for_chip();
   Eeprom24C04_16 eeprom(address_eeprom);
   eeprom.initialize(); 
   Serial.println(F("00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F"));
@@ -670,6 +690,10 @@ void test_chip(int number_cycle)
    }   
   }
   Serial.println(" ");
+  power_off_for_chip();
+
+  // Показываем текущий чип на экране
+  db_name(global_id); 
 }
 
 /************************************* ПОКАЗ ДАМПА НА ЭКРАН *************************************/
