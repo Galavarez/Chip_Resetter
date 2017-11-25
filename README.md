@@ -36,13 +36,14 @@ Chip Resetter for Ricoh, Samsung and Xerox
 3.  В правом верхнем углу показывается распиновка чипа G (ground), V (vcc), D (data), C (clock)
 
 Какие чипы поддерживаем обнулятор?
-1.	Ricoh SP 100 (SP 101E)
-2.	Ricoh SP 111 (SP 110E)
-3.	Ricoh SP 150
-4.	Ricoh SP 300
-5.	Ricoh SP 311
-6.	Samsung SCX 4200 (автоматическая смена номера CRUM)
-7.	Xerox PE 220 (автоматическая смена номера CRUM)
-8.	Xerox WC 3119 (автоматическая смена номера CRUM)
+- Ricoh SP 100 (SP 101E)
+- Ricoh SP 111 (SP 110E)
+- Ricoh SP 150
+- Ricoh SP 200, 202, 203 на 2.6К
+- Ricoh SP 300
+- Ricoh SP 311
+- Samsung SCX 4200 (автоматическая смена номера CRUM)
+- Xerox PE 220 (автоматическая смена номера CRUM)
+- Xerox WC 3119 (автоматическая смена номера CRUM)
 
 Чипы будут появляться по мере появления у меня дампов к ним и возможности их добавить.
