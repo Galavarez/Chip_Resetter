@@ -45,6 +45,7 @@ Chip Resetter for Ricoh, Samsung and Xerox
 - Ricoh SP 111 (SP 110E)
 - Ricoh SP 150
 - Ricoh SP 200, 202, 203 на 2.6К
+- Ricoh SP 210 
 - Ricoh SP 300
 - Ricoh SP 311
 - Samsung SCX 4200 (автоматическая смена номера CRUM)
