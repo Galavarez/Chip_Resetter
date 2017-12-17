@@ -1,5 +1,8 @@
 /* 
 Auto Resetter wthiout sd card by Galavarez
+* Версия 17.12.2017 
+- Добавил чип Ricoh SP 210 спасибо за дамп copiermaster
+
 * Версия 25.11.2017 
 - Добавил чип Ricoh SP 200, 202, 203 на 2.6К
 
@@ -61,9 +64,25 @@ int global_size_dump = 0;
 boolean global_button_press = false; // true - кнопка нажата
 
 /****************************** ДАМПЫ ЧИПОВ ******************************/
+
+// Ricoh Aficio SP 210 (407971) 
+const PROGMEM byte dump_ricoh_aficio_sp_210[128] = {
+  0x21, 0x00, 0x01, 0x03, 0x01, 0x01, 0x01, 0x00, 0x64, 0x00, 0x34, 0x30,
+  0x37, 0x39, 0x37, 0x31, 0x15, 0x03, 0x4D, 0x50, 0x04, 0x00, 0x01, 0x08,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x64, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
+
 // SP150HE (408010) 1.5k от Aficio SP 150 (W/SU/SUW) 24С01
-const PROGMEM byte dump_ricoh_aficio_sp_150[128] = 
-{
+const PROGMEM byte dump_ricoh_aficio_sp_150[128] = {
   0x32, 0x00, 0x01, 0x03, 0x02, 0x01, 0x01, 0x00, 0x64, 0x00, 0x34, 0x30, 0x38, 0x30, 0x31, 0x30, 
   0x16, 0x10, 0x4D, 0x4D, 0x26, 0x00, 0x01, 0x56, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x64, 0x00, 0x00, 0x00,
@@ -324,7 +343,7 @@ void loop()
       db_name(global_id);
 
       // Тест данных
-      test_chip_on_pc(128);
+      //test_chip_on_pc(128);
     }
   }
   else if (analog_number < 400 && global_button_press == false) // Если это кнопка Down и другие кнопки не нажаты то
@@ -392,29 +411,35 @@ void db_name(byte id)
       break;
     case 5:
       lcd.clear();
+      lcd.print(F("RICOH       GVCD"));
+      lcd.setCursor(0,1);
+      lcd.print(F("SP 210"));
+      break;  
+    case 6:
+      lcd.clear();
       lcd.print(F("RICOH       GVDC"));
       lcd.setCursor(0,1);
       lcd.print(F("SP 300"));
       break;    
-    case 6:
+    case 7:
       lcd.clear();
       lcd.print(F("RICOH       GVCD"));
       lcd.setCursor(0,1);
       lcd.print(F("SP 311"));
       break;
-    case 7:
+    case 8:
       lcd.clear();
       lcd.print(F("SAMSUNG     VDCG"));
       lcd.setCursor(0,1);
       lcd.print(F("SCX 4200"));
       break;
-    case 8:
+    case 9:
       lcd.clear();
       lcd.print(F("XEROX       VDCG"));
       lcd.setCursor(0,1);
       lcd.print(F("WC 3119"));
       break;
-    case 9:
+    case 10:
       lcd.clear();
       lcd.print(F("XEROX       VDCG"));
       lcd.setCursor(0,1);
@@ -448,24 +473,28 @@ void db_firmware(byte id)
       firmware(dump_ricoh_sp_200_202_203, global_size_dump);
       break;
     case 5:
+      global_size_dump = sizeof(dump_ricoh_aficio_sp_210);
+      firmware(dump_ricoh_aficio_sp_210, global_size_dump);
+      break;
+    case 6:
       global_size_dump = sizeof(dump_ricoh_aficio_sp_300);
       firmware(dump_ricoh_aficio_sp_300, global_size_dump);
       break;     
-    case 6:
+    case 7:
       global_size_dump = sizeof(dump_ricoh_aficio_sp_311);
       firmware(dump_ricoh_aficio_sp_311, global_size_dump);
       break;
-    case 7:
+    case 8:
       global_size_dump = sizeof(dump_samsung_scx_4200);
       firmware(dump_samsung_scx_4200, global_size_dump);      
       change_crum_one(63); // Указываем номер байта младшего разряда серийного номера 
       break;
-    case 8:
+    case 9:
       global_size_dump = sizeof(dump_xerox_wc_3119);
       firmware(dump_xerox_wc_3119, global_size_dump);      
       change_crum_one(63);  
       break;
-    case 9:
+    case 10:
       global_size_dump = sizeof(dump_xerox_pe_220);
       firmware(dump_xerox_pe_220, global_size_dump);      
       change_crum_one(63); 
@@ -696,7 +725,7 @@ void test_chip_on_pc(int number_cycle)
   db_name(global_id); 
 }
 
-/************************************* ПОКАЗ ДАМПА НА ЭКРАН *************************************/
+/************************************* ПОКАЗ ДАМПА НА LCD *************************************/
 void view_on_lcd_128_byte()
 {
   power_on_for_chip();
