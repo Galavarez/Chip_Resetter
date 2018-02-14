@@ -1,5 +1,9 @@
 /* 
 Auto Resetter wthiout sd card by Galavarez
+* Версия 14.02.2018
+- Добавлен круговой поиск чипов т.е. стоя на первом чипе при нажатие кнопки LEFT попадаете на последний чип
+- Улучшена скорость записи чипов с 8 - 10 сек до 1 - 3 сек
+
 * Версия 13.02.2018
 - Добавил чип Ricoh SP 201HE для SP 211/213/220, принтера нет чтобы проверить прошивку.
 
@@ -70,8 +74,11 @@ LiquidCrystal lcd( 8, 9, 4, 5, 6, 7 );
 // Адрес чипа (адрес динамический, меняется от чипа к чипу)
 byte address_eeprom;
 
-// Номер чипа
+// Номер чипа по умолчанию
 byte global_id = 1;
+
+// Кол-во чипов в базе данных
+int global_all_chip_in_database;
 
 // Имя дампа
 const byte *global_name_dump;
@@ -415,8 +422,18 @@ void loop()
       // Увеличиваем счетчик
       global_id++;
       
-      // Показываем на экране
-      database(global_id);
+      if (global_id <= global_all_chip_in_database)
+      {
+        // Показываем на экране следующий чип
+        database(global_id);
+      }
+      else
+      {
+        // Показываем на экране 1 чип
+        global_id = 1;
+        database(global_id);
+      }
+      
     }
   }
   else if (analog_number < 200 && global_button_press == false) // Если это кнопка UP и другие кнопки не нажаты то
@@ -428,7 +445,8 @@ void loop()
       power_on_for_chip();
       
       // Прошивка чипа 
-      firmware();
+      //firmware();
+      firmware_v2();
       
       // Выключаем питание
       power_off_for_chip();
@@ -460,8 +478,18 @@ void loop()
       Serial.println(F("CLICK BUTTON LEFT"));
       // Уменьшаем счетчик 
       global_id--; 
-      // Показываем на экране
-      database(global_id);
+      
+      if (global_id != 0)
+      {
+        // Показываем на экране предыдущий чип
+        database(global_id);
+      }
+      else
+      {
+        // Показываем на экране последний чип в базе данных
+        global_id = global_all_chip_in_database; 
+        database(global_id);
+      }
     }
   }
   else if (analog_number < 800 && global_button_press == false) // Если это кнопка Select и другие кнопки не нажаты то
@@ -479,6 +507,10 @@ void loop()
 /****************************** БАЗА ДАННЫХ ******************************/
 void database(byte id)
 {
+  // Кол-во чипов в БД, менять число при добавления или удаления чипов
+  global_all_chip_in_database = 15; 
+
+  // Поиск чипа
   switch (id)
   {    
     case 1:
@@ -601,10 +633,6 @@ void database(byte id)
       global_number_byte_end_of_sn = 63;
       global_number_byte_end_of_sn_2 = 0;
       break;      
-    default:
-      // Если номера нет в базе то переходим к 1 чипу
-      global_id = 1;
-      database(global_id);
   }    
 }
 
@@ -712,6 +740,50 @@ void firmware()
       change_crum_one(global_number_byte_end_of_sn);
     }
   }
+}
+
+/****************************** ПРОШИВКА ЧИПА ВЕРСИЯ 2 ******************************/
+void firmware_v2()
+{
+  lcd.clear();
+  lcd.print(F("FIRMWARE CHIP"));
+  lcd.setCursor(0, 1);      
+  lcd.blink(); // влючаем мигание курсора для информативности
+  Serial.println(F("FIRMWARE START"));
+  Eeprom24C04_16 eeprom(address_eeprom);
+  eeprom.initialize();   
+
+  word address = 0; // Адрес начало дампа
+  int count = 512; // байт в чипе
+  
+  byte array_bytes[count];  // Создаем массив с нужным размером 
+  for (int i = 0; i < count; i++) 
+  {    
+    array_bytes[i] = pgm_read_byte(&global_name_dump[i]); // Заполняем массив
+    //Serial.print(pgm_read_byte(&global_name_dump[i]));
+  }
+  eeprom.writeBytes(address, count, array_bytes); // Записываем в чип
+  
+  Serial.println(F("FIRMWARE END"));
+  lcd.print(F("DONE !!!"));
+  lcd.noBlink(); // отключаем мигание курсора
+
+  // Проверка чипа
+  verification_dump();
+
+  // Смена серийного номера чипа если это нужно 
+  if (global_number_byte_end_of_sn > 0) // Если серийник есть то меняем его
+  {
+    if (global_number_byte_end_of_sn_2 > 0) // Если серийников 2 то меняем в двух местах
+    {
+      change_crum_two(global_number_byte_end_of_sn, global_number_byte_end_of_sn_2);
+    }
+    else // иначе меняем в одном
+    {
+      change_crum_one(global_number_byte_end_of_sn);
+    }
+  }
+
 }
 
 /************************************* ПРОВЕРКА ДАМПА ПОСЛЕ ПРОШИВКИ *************************************/
@@ -847,7 +919,7 @@ void read_chip_and_display_it()
         //lcd.setCursor(i_2,0);
         //Serial.println(eeprom.readByte(i_2 + i_1 * byte_in_str));
       }
-      delay(1000);
+      delay(500);
   }
   lcd.clear();
   /*
