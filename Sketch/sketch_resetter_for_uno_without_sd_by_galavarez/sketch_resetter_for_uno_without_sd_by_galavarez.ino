@@ -1,5 +1,11 @@
 /* 
 Auto Resetter wthiout sd card by Galavarez
+* Версия 02.03.2018
+- Новая библиотека для работы с чипами, старая глючит при скоростной заливки дампа. Библиотека в папке Library.
+
+* Версия 25.02.2018
+- Не большое изменение в коде
+
 * Версия 14.02.2018
 - Добавлен круговой поиск чипов т.е. стоя на первом чипе при нажатие кнопки LEFT попадаете на последний чип
 - Улучшена скорость записи чипов с 8 - 10 сек до 1 - 3 сек
@@ -53,7 +59,7 @@ Auto Resetter wthiout sd card by Galavarez
 */
 
 // Подключаем библиотеку которая позволяет управлять микросхемами 24CXX подключать их на ПИН A4 (SDA), A5 (SCL)
-#include <Eeprom24C04_16.h> 
+#include <Eeprom24C01_02.h> // Библиотека работает с 24C01 24C02 24C04
 // Подключаем библиотеку которая позволяет взаимодействовать с различными устройствами по интерфейсу I2C / TWI.
 #include <Wire.h> 
 // Подключаем библиотеку которая позволяет управлять различными жидкокристаллическими дисплеями (LCD)
@@ -134,7 +140,7 @@ const PROGMEM byte dump_ricoh_aficio_sp_150[128] = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-// Ricoh R-SP200HS-2.6K for Ricoh SP 200,202,203
+// Ricoh R-SP200HS-2.6K for Ricoh SP 200,202,203 -- Ricoh SP200/201/202/203/204 (с картриджем SP200HE)
 const PROGMEM byte dump_ricoh_sp_200_202_203[256] = {
   0x21, 0x00, 0x01, 0x04, 0x03, 0x01, 0x01, 0x00, 0x00, 0x00, 0x34, 0x30, 0x37, 0x32, 0x35, 0x37, 
   0x13, 0x07, 0x4D, 0x43, 0x11, 0x00, 0x22, 0x32, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x01, 0x00, 
@@ -154,7 +160,7 @@ const PROGMEM byte dump_ricoh_sp_200_202_203[256] = {
   0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
 };
 
-// Ricoh Ricoh SP201HE для Ricoh серии SP211/213/220 (2600стр)
+// Ricoh Ricoh SP201HE для Ricoh серии SP211/213/220 (2600стр) --  Ricoh SP211/213/220, с картриджем SP201HE
 const PROGMEM byte dump_ricoh_sp_211_213_220[256] = {
   0x21, 0x00, 0x01, 0x04, 0x03, 0x01, 0x01, 0x00, 0x00, 0x00, 0x31, 0x31,
   0x31, 0x31, 0x35, 0x37, 0x13, 0x07, 0x4D, 0x43, 0x11, 0x00, 0x14, 0x91,
@@ -447,6 +453,7 @@ void loop()
       // Прошивка чипа 
       //firmware();
       firmware_v2();
+      //firmware_v3();
       
       // Выключаем питание
       power_off_for_chip();
@@ -618,7 +625,7 @@ void database(byte id)
       global_number_byte_end_of_sn_2 = 0;
       break;
     case 14:
-      lcd.clear();            lcd.print(F("XEROX       VDCG"));
+      lcd.clear();            lcd.print(F("XEROX       GCDV"));
       lcd.setCursor(0,1);     lcd.print(F("WC 4118"));
       global_name_dump = dump_xerox_wc_4118;
       global_size_dump = sizeof(dump_xerox_wc_4118);
@@ -678,7 +685,7 @@ void search_address_chip()
     error = Wire.endTransmission();
     if (error == 0) // Ошибок нет, устройство найдено
     {     
-      Eeprom24C04_16 eeprom(address); // Берем адреес шины и пытаемся считать данные с чипа
+      Eeprom24C01_02 eeprom(address); // Берем адреес шины и пытаемся считать данные с чипа
       eeprom.initialize();
       if (eeprom.readByte(0) != 0xFF) // Считываем нулевой байт, если он 0xFF то ищим следующий адрес 
       {
@@ -704,7 +711,7 @@ void firmware()
   lcd.setCursor(0, 1);      
   lcd.blink(); // влючаем мигание курсора для информативности
   Serial.println(F("FIRMWARE START"));
-  Eeprom24C04_16 eeprom(address_eeprom);
+  Eeprom24C01_02 eeprom(address_eeprom);
   eeprom.initialize();  
   for(int i = 0; i < global_size_dump; i++) // Циклы
   {
@@ -750,21 +757,20 @@ void firmware_v2()
   lcd.setCursor(0, 1);      
   lcd.blink(); // влючаем мигание курсора для информативности
   Serial.println(F("FIRMWARE START"));
-  Eeprom24C04_16 eeprom(address_eeprom);
+  Eeprom24C01_02 eeprom(address_eeprom);
   eeprom.initialize();   
 
   word address = 0; // Адрес начало дампа
-  int count = 512; // байт в чипе
+  int count = global_size_dump; // байт в чипе
   
   byte array_bytes[count];  // Создаем массив с нужным размером 
   for (int i = 0; i < count; i++) 
   {    
     array_bytes[i] = pgm_read_byte(&global_name_dump[i]); // Заполняем массив
-    //Serial.print(pgm_read_byte(&global_name_dump[i]));
+    //Serial.println(pgm_read_byte(&global_name_dump[i]), HEX);
   }
   eeprom.writeBytes(address, count, array_bytes); // Записываем в чип
   
-  Serial.println(F("FIRMWARE END"));
   lcd.print(F("DONE !!!"));
   lcd.noBlink(); // отключаем мигание курсора
 
@@ -783,7 +789,6 @@ void firmware_v2()
       change_crum_one(global_number_byte_end_of_sn);
     }
   }
-
 }
 
 /************************************* ПРОВЕРКА ДАМПА ПОСЛЕ ПРОШИВКИ *************************************/
@@ -792,7 +797,7 @@ void verification_dump()
   lcd.clear();
   lcd.print(F("VERIFICATION"));
   lcd.setCursor(0,1);
-  Eeprom24C04_16 eeprom(address_eeprom);
+  Eeprom24C01_02 eeprom(address_eeprom);
   eeprom.initialize(); 
   for(int i = 0; i < global_size_dump; i++) // Циклы
   {
@@ -822,7 +827,7 @@ void verification_dump()
 /****************************** ГЕНЕРАТОР СЕРИЙНОГО НОМЕРА ******************************/
 void change_crum_one(int address_low_byte_sn)
 {  
-  Eeprom24C04_16 eeprom(address_eeprom);
+  Eeprom24C01_02 eeprom(address_eeprom);
   eeprom.initialize();  
    
   int temp_sn_one = address_low_byte_sn; // Получаем номер байта серийника
@@ -840,7 +845,7 @@ void change_crum_one(int address_low_byte_sn)
 
 void change_crum_two(int address_low_byte_sn_1, int address_low_byte_sn_2)
 {
-  Eeprom24C04_16 eeprom(address_eeprom);
+  Eeprom24C01_02 eeprom(address_eeprom);
   eeprom.initialize();
   int temp_sn_one = address_low_byte_sn_1;
   int temp_sn_two = address_low_byte_sn_2;
@@ -864,7 +869,7 @@ void change_crum_two(int address_low_byte_sn_1, int address_low_byte_sn_2)
 /************************************* ВЫВОД СЕРИЙНОГО НОМЕРА НА LCD *************************************/
 void print_sn_on_lcd()
 {  
-  Eeprom24C04_16 eeprom(address_eeprom);
+  Eeprom24C01_02 eeprom(address_eeprom);
   eeprom.initialize();
   //
   lcd.clear();
@@ -893,7 +898,7 @@ void print_sn_on_lcd()
 void read_chip_and_display_it()
 {
   power_on_for_chip();
-  Eeprom24C04_16 eeprom(address_eeprom);
+  Eeprom24C01_02 eeprom(address_eeprom);
   eeprom.initialize();  
   //char c = (char)eeprom.readByte(0); // получил hex to ascii
   int byte_in_str = 16;
@@ -945,7 +950,7 @@ void read_chip_and_display_it()
 void crum_print(int num_start, int num_end)
 {
   
-  Eeprom24C04_16 eeprom(address_eeprom);
+  Eeprom24C01_02 eeprom(address_eeprom);
   eeprom.initialize();
   Serial.print("CRUM-"); 
   for(int i = num_start; i < num_end; i++)
@@ -967,7 +972,7 @@ String insert_null(byte num)
 void test_chip_on_pc(int number_cycle)
 {
   power_on_for_chip();
-  Eeprom24C04_16 eeprom(address_eeprom);
+  Eeprom24C01_02 eeprom(address_eeprom);
   eeprom.initialize(); 
   Serial.println(F("00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F"));
   Serial.println(F(" "));
@@ -992,7 +997,25 @@ void test_chip_on_pc(int number_cycle)
   database(global_id); 
 }
 
+/************************************* Узнаем сколько во время работы осталось RAM ******************************/
+/*
+//Использование
+//Serial.println(memoryFree());
 
+// Переменные, создаваемые процессом сборки,
+// когда компилируется скетч
+extern int __bss_end;
+extern void *__brkval;
+ 
+// Функция, возвращающая количество свободного ОЗУ (RAM)
+int memoryFree()
+{
+   int freeValue;
+   if((int)__brkval == 0)
+      freeValue = ((int)&freeValue) - ((int)&__bss_end);
+   else
+      freeValue = ((int)&freeValue) - ((int)__brkval);
+   return freeValue;
+}
 
-
-
+*/
