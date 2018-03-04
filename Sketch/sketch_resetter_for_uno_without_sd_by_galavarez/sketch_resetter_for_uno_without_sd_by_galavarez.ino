@@ -1,5 +1,9 @@
 /* 
 Auto Resetter wthiout sd card by Galavarez
+* Версия 04.03.2018
+- Новая экспериментальная функция определения плохого контакта с чипом. На экран будет выведено Concact Bad и тогда нужно будет перезапустить ардуино.
+- Так же эта функция доступна по кнопке SELECT она полюбому пока не используется.
+
 * Версия 02.03.2018
 - Новая библиотека для работы с чипами, старая глючит при скоростной заливки дампа. Библиотека в папке Library.
 
@@ -393,7 +397,7 @@ const PROGMEM byte dump_ricoh_sp_4510[256] = {
 /****************************** SETUP ******************************/
 
 void setup() 
-{
+{   
   lcd.begin(16, 2);  // Инициализируем LCD 16x2
   Serial.begin(9600); //инициализируем последовательное соединение для работы с ПК
   while (!Serial) { ; } // Ждем когда подключится ардуино к пк по usb
@@ -504,6 +508,9 @@ void loop()
     if (analog_debonce(800) == true)  // делаем проверку от дребезга кнопок
     {
       Serial.println(F("CLICK BUTTON SELECT")); 
+      power_on_for_chip();
+      check_contact();
+      power_off_for_chip();
     }
   }
 
@@ -666,7 +673,8 @@ void power_on_for_chip()
 {
   digitalWrite(POWER_PIN, HIGH); // Подаем питания на A2 для запитки чипа
   delay(500); // Задержка для поднятия напряжения
-  search_address_chip(); // Сканируем шину I2C на наличия чипа и сохраняем адрес его в памяти
+  //search_address_chip(); // Сканируем шину I2C на наличия чипа и сохраняем адрес его в памяти
+  search_address_chip_2();
 }
 
 /****************************** ВЫКЛЮЧАЕМ ПИТАНИЯ ЧИПА ******************************/
@@ -679,7 +687,7 @@ void power_off_for_chip()
 void search_address_chip()
 {
   byte error, address;
-  for(address = 1; address < 127; address++ )
+  for(address = 1; address < 127; address++)
   {        
     Wire.beginTransmission(address);
     error = Wire.endTransmission();
@@ -692,6 +700,41 @@ void search_address_chip()
         address_eeprom = address; // Сохраняем адрес чипа в памяти
         //Serial.print(F("Address chip = 0x"));
         //Serial.println(address,HEX);  // Показываем адрес на котором сидит чип
+        break;
+      }     
+    }
+    else if (error==4) //Есть ошибки
+    {
+      Serial.println(F("error == 4"));
+      Serial.println(address,HEX);
+    }
+  }   
+}
+
+/****************************** ПОИСК ЧИПА НА ШИНЕ I2C ВЕРСИЯ 2 ******************************/
+void search_address_chip_2()
+{
+  // По умолчанию считается что контакта с чипом нет (если все хорошо то этого сообщения не увидите)
+  lcd.clear(); lcd.print(F("CONTACT CHIP"));  lcd.setCursor(0,1); lcd.print(F("BAD"));
+     
+  byte error, address;
+  for(address = 1; address < 127; address++)
+  {        
+    Wire.beginTransmission(address);
+    error = Wire.endTransmission();
+    if (error == 0) // Ошибок нет, устройство найдено
+    {     
+      Eeprom24C01_02 eeprom(address); // Берем адреес шины и пытаемся считать данные с чипа
+      eeprom.initialize();
+      if (eeprom.readByte(0) != 0xFF) // Считываем нулевой байт, если он 0xFF то ищим следующий адрес 
+      {
+        address_eeprom = address; // Сохраняем адрес чипа в памяти
+        //Serial.print(F("Address chip = 0x"));
+        //Serial.println(address,HEX);  // Показываем адрес на котором сидит чип
+        
+        //Serial.println("Contact GOOD");
+        lcd.setCursor(0,1); lcd.print(F("GOOD")); // Контакт есть
+                
         break;
       }     
     }
@@ -945,57 +988,31 @@ void read_chip_and_display_it()
   database(global_id); 
 }
 
-/************************************* ОТЛАДКА *************************************/
-/*
-void crum_print(int num_start, int num_end)
+/************************************* ПРОВЕРКА КОНТАКТА НА ЧИПЕ *************************************/
+void check_contact()
 {
-  
-  Eeprom24C01_02 eeprom(address_eeprom);
-  eeprom.initialize();
-  Serial.print("CRUM-"); 
-  for(int i = num_start; i < num_end; i++)
-  {
-    char c = (char)eeprom.readByte(i); // получаем ascii из hex 
-    Serial.print(c);
+  // По умолчанию считается что контакта с чипом нет (если все хорошо то этого сообщения не увидите)
+  lcd.clear(); lcd.print(F("CONTACT CHIP"));  lcd.setCursor(0,1); lcd.print(F("BAD"));
+  byte address = 1;
+  byte error = 0;
+  for(address = 1 ; address < 127; address++ )
+  {        
+    Wire.beginTransmission(address);
+    error = Wire.endTransmission();
+    if (error == 0)
+    {
+      //Serial.println(F("Contact GOOD"));
+      lcd.setCursor(0,1);
+      lcd.print(F("GOOD"));
+      break;
+    }
   }
-  Serial.println(" ");
-}
-*/
-
-String insert_null(byte num)
-{
-  // Подставляем ноль если число меньше 10
-  if (num < 0x10) {Serial.print("0");} Serial.print(num,HEX);  
-}
-
-
-void test_chip_on_pc(int number_cycle)
-{
-  power_on_for_chip();
-  Eeprom24C01_02 eeprom(address_eeprom);
-  eeprom.initialize(); 
-  Serial.println(F("00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F"));
-  Serial.println(F(" "));
-  for (int i = 0; i < number_cycle; i++)
-  {
-   if ( i%16 == 0 && i!=0)
-   {
-     Serial.println(" ");
-     insert_null(eeprom.readByte(i)); 
-     Serial.print(" ");         
-   }
-   else
-   {
-    insert_null(eeprom.readByte(i)); 
-    Serial.print(" ");
-   }   
-  }
-  Serial.println(" ");
-  power_off_for_chip();
-
+  delay(1000);
   // Показываем текущий чип на экране
-  database(global_id); 
+  database(global_id);
 }
+
+/************************************* ОТЛАДКА *************************************/
 
 /************************************* Узнаем сколько во время работы осталось RAM ******************************/
 /*
