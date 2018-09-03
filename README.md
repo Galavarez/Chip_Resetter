@@ -45,8 +45,8 @@ Chip Resetter for Ricoh, Samsung and Xerox
 - Ricoh SP 100 (SP 101E) (407059)
 - Ricoh SP 111 (SP 110E)
 - Ricoh SP 150 (408010)
-- Ricoh SP 200, 202, 203 на 2.6К
-- Ricoh SP 201HE для SP 211/213/220 (прошивка тестируется)
+- Ricoh SP 200, 202, 203 на 2.6К (407257)
+- Ricoh SP 201HE для SP 211/213/220 (111135)
 - Ricoh SP 210 (407971) 
 - Ricoh SP 300 (406956)
 - Ricoh SP 311 (407246)
