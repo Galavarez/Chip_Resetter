@@ -60,3 +60,7 @@ Chip Resetter for Ricoh, Samsung and Xerox
 
 Новые дампы будут появляться по мере появления у меня их. 
 Дампы чипов (желательно новые) для Ricoh можно отправлять мне на email GalavarezMan@yandex.ru
+
+Фото обнулятора:
+
+<img src="https://github.com/Galavarez/Chip_Resetter/blob/master/Photos%20of%20the%20device/IMG_20171012_154550.jpg" width="400" height="300"/>
