@@ -586,7 +586,7 @@ void database(byte id)
   switch (id)
   {    
     case 1:
-      lcd.clear();            lcd.print(F("RICOH       GVCD"));
+      lcd.clear();            lcd.print(F("RICOH 2K    GVCD"));
       lcd.setCursor(0,1);     lcd.print(F("SP 100 (SP 101E)"));
       global_name_dump = dump_ricoh_sp_101e_407059; // ссылка на дамп
       global_size_dump = sizeof(dump_ricoh_sp_101e_407059); // размер дампа
@@ -594,7 +594,7 @@ void database(byte id)
       global_number_byte_end_of_sn_2 = 0; // младший разряд второго серийного номера, если 0 то серийного номера нет
       break;
     case 2:
-      lcd.clear();            lcd.print(F("RICOH       GVCD"));
+      lcd.clear();            lcd.print(F("RICOH 2K    GVCD"));
       lcd.setCursor(0,1);     lcd.print(F("SP 111 (SP 110E)"));
       global_name_dump = dump_ricoh_sp_110e_xxxxxx;
       global_size_dump = sizeof(dump_ricoh_sp_110e_xxxxxx);
@@ -602,7 +602,7 @@ void database(byte id)
       global_number_byte_end_of_sn_2 = 0;
       break;      
     case 3:
-      lcd.clear();            lcd.print(F("RICOH       GVCD"));
+      lcd.clear();            lcd.print(F("RICOH 1.5K  GVCD"));
       lcd.setCursor(0,1);     lcd.print(F("SP 150"));
       global_name_dump = dump_ricoh_sp_150_408010;
       global_size_dump = sizeof(dump_ricoh_sp_150_408010);
@@ -610,7 +610,7 @@ void database(byte id)
       global_number_byte_end_of_sn_2 = 0;
       break;
     case 4:
-      lcd.clear();            lcd.print(F("RICOH       GVCD"));
+      lcd.clear();            lcd.print(F("RICOH 2.6K  GVCD"));
       lcd.setCursor(0,1);     lcd.print(F("200/02/03/10/12"));
       global_name_dump = dump_ricoh_sp_200_hl_407262;
       global_size_dump = sizeof(dump_ricoh_sp_200_hl_407262);
@@ -618,7 +618,7 @@ void database(byte id)
       global_number_byte_end_of_sn_2 = 0;
       break;
     case 5:
-      lcd.clear();            lcd.print(F("RICOH       GVCD"));
+      lcd.clear();            lcd.print(F("RICOH 2.6K  GVCD"));
       lcd.setCursor(0,1);     lcd.print(F("201/04/11/13/20"));
       global_name_dump = dump_ricoh_sp_201_hl_111135;
       global_size_dump = sizeof(dump_ricoh_sp_201_hl_111135);
@@ -626,7 +626,7 @@ void database(byte id)
       global_number_byte_end_of_sn_2 = 0;
       break;  
     case 6:
-      lcd.clear();            lcd.print(F("RICOH       GVDC"));
+      lcd.clear();            lcd.print(F("RICOH 1.5K  GVDC"));
       lcd.setCursor(0,1);     lcd.print(F("SP 300"));
       global_name_dump = dump_ricoh_sp_300_406956;
       global_size_dump = sizeof(dump_ricoh_sp_300_406956);
@@ -634,23 +634,23 @@ void database(byte id)
       global_number_byte_end_of_sn_2 = 0;
       break;    
     case 7:
-      lcd.clear();            lcd.print(F("RICOH       GVCD"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 311/325 3.5K"));
+      lcd.clear();            lcd.print(F("RICOH 3.5K  GVCD"));
+      lcd.setCursor(0,1);     lcd.print(F("SP 311/325"));
       global_name_dump = dump_ricoh_sp_311_407246;
       global_size_dump = sizeof(dump_ricoh_sp_311_407246);
       global_number_byte_end_of_sn = 0;
       global_number_byte_end_of_sn_2 = 0;
       break;
     case 8:
-      lcd.clear();            lcd.print(F("RICOH       GVCD"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 311/325 6.4K"));
+      lcd.clear();            lcd.print(F("RICOH 6.4K  GVCD"));
+      lcd.setCursor(0,1);     lcd.print(F("SP 311/325"));
       global_name_dump = dump_ricoh_sp_311_821242;
       global_size_dump = sizeof(dump_ricoh_sp_311_821242);
       global_number_byte_end_of_sn = 0;
       global_number_byte_end_of_sn_2 = 0;
       break;
     case 9:
-      lcd.clear();            lcd.print(F("RICOH       GVDC"));
+      lcd.clear();            lcd.print(F("RICOH 5K    GVDC"));
       lcd.setCursor(0,1);     lcd.print(F("3400/10 3500/10"));
       global_name_dump = dump_ricoh_sp_3400he_406522;
       global_size_dump = sizeof(dump_ricoh_sp_3400he_406522);
@@ -658,15 +658,15 @@ void database(byte id)
       global_number_byte_end_of_sn_2 = 0;
       break;
     case 10:
-      lcd.clear();            lcd.print(F("RICOH       GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("Only 3500/10"));
+      lcd.clear();            lcd.print(F("RICOH 6.4K  GVDC"));
+      lcd.setCursor(0,1);     lcd.print(F("ONLY 3500/10"));
       global_name_dump = dump_ricoh_sp_3500xe_406990;
       global_size_dump = sizeof(dump_ricoh_sp_3500xe_406990);
       global_number_byte_end_of_sn = 0;
       global_number_byte_end_of_sn_2 = 0;
       break;
     case 11:
-      lcd.clear();            lcd.print(F("RICOH       GVCD"));
+      lcd.clear();            lcd.print(F("RICOH 12K   GVCD"));
       lcd.setCursor(0,1);     lcd.print(F("SP 3600/10 4510"));
       global_name_dump = dump_ricoh_sp_4500he_407318;
       global_size_dump = sizeof(dump_ricoh_sp_4500he_407318);
@@ -674,7 +674,7 @@ void database(byte id)
       global_number_byte_end_of_sn_2 = 0;
       break;      
     case 12:
-      lcd.clear();            lcd.print(F("SAMSUNG     VDCG"));
+      lcd.clear();            lcd.print(F("SAMSUNG 3K  VDCG"));
       lcd.setCursor(0,1);     lcd.print(F("SCX 4200/20"));
       global_name_dump = dump_samsung_scx_d4200a;
       global_size_dump = sizeof(dump_samsung_scx_d4200a);
@@ -682,7 +682,7 @@ void database(byte id)
       global_number_byte_end_of_sn_2 = 0;
       break;
     case 13:
-      lcd.clear();            lcd.print(F("XEROX       VDCG"));
+      lcd.clear();            lcd.print(F("XEROX 3K    VDCG"));
       lcd.setCursor(0,1);     lcd.print(F("WC 3119"));
       global_name_dump = dump_xerox_013R00625;
       global_size_dump = sizeof(dump_xerox_013R00625);
@@ -690,7 +690,7 @@ void database(byte id)
       global_number_byte_end_of_sn_2 = 0;
       break;
     case 14:
-      lcd.clear();            lcd.print(F("XEROX       GCDV"));
+      lcd.clear();            lcd.print(F("XEROX 8K    GCDV"));
       lcd.setCursor(0,1);     lcd.print(F("WC 4118"));
       global_name_dump = dump_xerox_006R01278;
       global_size_dump = sizeof(dump_xerox_006R01278);
@@ -698,7 +698,7 @@ void database(byte id)
       global_number_byte_end_of_sn_2 = 191;
       break;
     case 15:
-      lcd.clear();            lcd.print(F("XEROX       VDCG"));
+      lcd.clear();            lcd.print(F("XEROX 2K    VDCG"));
       lcd.setCursor(0,1);     lcd.print(F("PE 220"));
       global_name_dump = dump_xerox_013R00621;
       global_size_dump = sizeof(dump_xerox_013R00621);
@@ -706,7 +706,7 @@ void database(byte id)
       global_number_byte_end_of_sn_2 = 0;
       break; 
     case 16:
-      lcd.clear();            lcd.print(F("RICOH       GVCD"));
+      lcd.clear();            lcd.print(F("RICOH 2.6K  GVCD"));
       lcd.setCursor(0,1);     lcd.print(F("NEW SP 201 TEST"));
       global_name_dump = dump_ricoh_sp_201s_407261;
       global_size_dump = sizeof(dump_ricoh_sp_201s_407261);
