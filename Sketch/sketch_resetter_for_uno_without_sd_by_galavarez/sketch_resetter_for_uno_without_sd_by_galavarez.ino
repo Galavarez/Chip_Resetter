@@ -1,5 +1,9 @@
 /* 
 Auto Resetter wthiout sd card by Galavarez
+* Версия 18.10.2018
+- Добавил новый дамп для Ricoh Aficio SP 277 на 2.6K (408160). Спасибо за него 1dx. Дамп надо проверить, отпишитесь по результатам проверки, работает или нет.
+- Добавил функцию по проверке количества отпечатанных страниц в картриджах Ricoh. Инструкция: подключить б.у. чип и нажать кнопку SELECT (самая левая).
+
 * Версия 11.09.2018
 - Обновил дамп для Ricoh SP 110E 2.6K (407441) for Ricoh SP 111 (SF/SU). Спасибо за него Белобородову Михаилу
 
@@ -444,6 +448,23 @@ const PROGMEM byte dump_ricoh_sp_201s_407261[128] = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
+
+// дамп с стартового картриджа проверить
+// 24С01_02 // Ricoh Aficio SP 277 series (408160) 
+const PROGMEM byte dump_ricoh_sp_277_408160[128] = {
+  0x21, 0x00, 0x01, 0x03, 0x04, 0x01, 0x03, 0x00, 0x64, 0x00, 0x34, 0x30,
+  0x38, 0x31, 0x36, 0x30, 0x17, 0x01, 0x4D, 0x42, 0x27, 0x00, 0x00, 0x90,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x64, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
 /****************************** SETUP ******************************/
 
 void setup() 
@@ -534,7 +555,7 @@ void loop()
       // Подаем питание и сканируем шину i2c на наличие чипа
       power_on_for_chip();
       // Считываем чип и показываем его на lcd
-      read_chip_and_display_it();
+      read_chip_and_display_it();      
       // Выключаем питание
       power_off_for_chip();
     }
@@ -565,6 +586,12 @@ void loop()
     if (analog_debonce(800) == true)  // делаем проверку от дребезга кнопок
     {
       Serial.println(F("CLICK BUTTON SELECT")); 
+
+      // Показываем количество отпечатаных страниц в чипах Ricoh
+      total_pages_on_display_ricoh();
+      
+      /* Таймер заменил на количество отпечатаных страниц в чипах Ricoh, кому надо раскомментируйте строки.
+        
       // Таймер обратного отсчета
       countdown_timer();
       
@@ -583,7 +610,8 @@ void loop()
       
       // Выключаем питание
       power_off_for_chip();
-
+      */
+      
       // Возврат в меню
       database(global_id);
     }
@@ -597,7 +625,7 @@ void loop()
 void database(byte id)
 {
   // Кол-во чипов в БД, менять число при добавления или удаления чипов
-  global_all_chip_in_database = 16; 
+  global_all_chip_in_database = 17; 
 
   // Поиск чипа
   switch (id)
@@ -729,7 +757,15 @@ void database(byte id)
       global_size_dump = sizeof(dump_ricoh_sp_201s_407261);
       global_number_byte_end_of_sn = 0;
       global_number_byte_end_of_sn_2 = 0;
-      break;      
+      break; 
+    case 17:
+      lcd.clear();            lcd.print(F("RICOH 2.6K  GVCD"));
+      lcd.setCursor(0,1);     lcd.print(F("NEW SP 277 TEST"));
+      global_name_dump = dump_ricoh_sp_277_408160;
+      global_size_dump = sizeof(dump_ricoh_sp_277_408160);
+      global_number_byte_end_of_sn = 0;
+      global_number_byte_end_of_sn_2 = 0;
+      break;     
   }    
 }
 
@@ -1160,6 +1196,34 @@ void countdown_timer()
     lcd.print(i); 
     delay(1000); // Задержка в 1 сек перед повтором цикла
   }
+}
+
+
+/************************************* ПОКАЗ ОТПЕЧАТАННЫХ СТРАНИЦ ДЛЯ RICOH *************************************/
+void total_pages_on_display_ricoh()
+{
+  power_on_for_chip();
+  
+  Eeprom24C04_16 eeprom(address_eeprom);
+  eeprom.initialize(); 
+
+  lcd.clear();
+  lcd.print(F("TOTAL PAGES"));
+  lcd.setCursor(0,1);
+    
+  byte HigherByte = eeprom.readByte(65); // Считываем 65 байт это старшый разряд
+  byte LowerByte = eeprom.readByte(64); // Считываем 64 байт это младший разряд
+  int Result = (HigherByte << 8) | LowerByte; // соединяем 2 разряда в одно
+  
+  lcd.print(Result); // показываем число на экран
+  delay(5000); // 5 секунд
+
+  lcd.clear();
+  
+  power_off_for_chip();
+
+  // Показываем текущий чип на экране
+  database(global_id); 
 }
 
 /************************************* ОТЛАДКА *************************************/
