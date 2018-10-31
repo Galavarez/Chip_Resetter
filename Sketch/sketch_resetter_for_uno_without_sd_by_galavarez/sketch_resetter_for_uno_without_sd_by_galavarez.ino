@@ -1,5 +1,8 @@
 /* 
 Auto Resetter wthiout sd card by Galavarez
+* Версия 31.10.2018
+- Добавил новый дамп для Ricoh Aficio SP 277 на 2.6K (408160), снят с нового чипа. Спасибо за него Дмитрию Щетневу. Мини реклама =) https://www.youtube.com/user/shetnevdima/featured
+
 * Версия 18.10.2018
 - Добавил новый дамп для Ricoh Aficio SP 277 на 2.6K (408160). Спасибо за него 1dx. Дамп надо проверить, отпишитесь по результатам проверки, работает или нет.
 - Добавил функцию по проверке количества отпечатанных страниц в картриджах Ricoh. Инструкция: подключить б.у. чип и нажать кнопку SELECT (самая левая).
@@ -209,6 +212,18 @@ const PROGMEM byte dump_ricoh_sp_201_hl_111135[128] = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
+// 24С01_02 // Ricoh SP 277HE 2.6K series (408160) for Ricoh SP 277NwX / 277SNwX / 277SFNwX
+const PROGMEM byte dump_ricoh_sp_277_408160[128] = {
+  0x21, 0x00, 0x01, 0x03, 0x02, 0x01, 0x01, 0x00, 0x64, 0x00, 0x34, 0x30, 0x38, 0x31, 0x36, 0x30, 
+  0x16, 0x01, 0x4D, 0x43, 0x27, 0x00, 0x1F, 0x39, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x64, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
@@ -435,35 +450,7 @@ const PROGMEM byte dump_xerox_006R01278[512] = {
 
 /*********** =====> TEST <===== *********/
 
-// новый дамп проверить !!!!
-// 24С01_02 // Ricoh Aficio SP 201 series (407261) 
-const PROGMEM byte dump_ricoh_sp_201s_407261[128] = {
-  0x21, 0x00, 0x01, 0x04, 0x02, 0x01, 0x01, 0x00, 0x64, 0x00, 0x34, 0x30, 0x37, 0x32, 0x36, 0x31,
-  0x13, 0x01, 0x4D, 0x42, 0x08, 0x00, 0x27, 0x50, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x64, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-};
 
-
-// дамп с стартового картриджа проверить
-// 24С01_02 // Ricoh Aficio SP 277 series (408160) 
-const PROGMEM byte dump_ricoh_sp_277_408160[128] = {
-  0x21, 0x00, 0x01, 0x03, 0x04, 0x01, 0x03, 0x00, 0x64, 0x00, 0x34, 0x30,
-  0x38, 0x31, 0x36, 0x30, 0x17, 0x01, 0x4D, 0x42, 0x27, 0x00, 0x00, 0x90,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x64, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-};
 
 /****************************** SETUP ******************************/
 
@@ -625,7 +612,7 @@ void loop()
 void database(byte id)
 {
   // Кол-во чипов в БД, менять число при добавления или удаления чипов
-  global_all_chip_in_database = 17; 
+  global_all_chip_in_database = 16; 
 
   // Поиск чипа
   switch (id)
@@ -669,8 +656,16 @@ void database(byte id)
       global_size_dump = sizeof(dump_ricoh_sp_201_hl_111135);
       global_number_byte_end_of_sn = 0;
       global_number_byte_end_of_sn_2 = 0;
-      break;  
+      break; 
     case 6:
+      lcd.clear();            lcd.print(F("RICOH 2.6K  GVCD"));
+      lcd.setCursor(0,1);     lcd.print(F("SP 277"));
+      global_name_dump = dump_ricoh_sp_277_408160;
+      global_size_dump = sizeof(dump_ricoh_sp_277_408160);
+      global_number_byte_end_of_sn = 0;
+      global_number_byte_end_of_sn_2 = 0;
+      break;  
+    case 7:
       lcd.clear();            lcd.print(F("RICOH 1.5K  GVDC"));
       lcd.setCursor(0,1);     lcd.print(F("SP 300"));
       global_name_dump = dump_ricoh_sp_300_406956;
@@ -678,7 +673,7 @@ void database(byte id)
       global_number_byte_end_of_sn = 0;
       global_number_byte_end_of_sn_2 = 0;
       break;    
-    case 7:
+    case 8:
       lcd.clear();            lcd.print(F("RICOH 3.5K  GVCD"));
       lcd.setCursor(0,1);     lcd.print(F("SP 311/325"));
       global_name_dump = dump_ricoh_sp_311_407246;
@@ -686,7 +681,7 @@ void database(byte id)
       global_number_byte_end_of_sn = 0;
       global_number_byte_end_of_sn_2 = 0;
       break;
-    case 8:
+    case 9:
       lcd.clear();            lcd.print(F("RICOH 6.4K  GVCD"));
       lcd.setCursor(0,1);     lcd.print(F("SP 311/325"));
       global_name_dump = dump_ricoh_sp_311_821242;
@@ -694,7 +689,7 @@ void database(byte id)
       global_number_byte_end_of_sn = 0;
       global_number_byte_end_of_sn_2 = 0;
       break;
-    case 9:
+    case 10:
       lcd.clear();            lcd.print(F("RICOH 5K    GVDC"));
       lcd.setCursor(0,1);     lcd.print(F("3400/10 3500/10"));
       global_name_dump = dump_ricoh_sp_3400he_406522;
@@ -702,7 +697,7 @@ void database(byte id)
       global_number_byte_end_of_sn = 0;
       global_number_byte_end_of_sn_2 = 0;
       break;
-    case 10:
+    case 11:
       lcd.clear();            lcd.print(F("RICOH 6.4K  GVDC"));
       lcd.setCursor(0,1);     lcd.print(F("ONLY 3500/10"));
       global_name_dump = dump_ricoh_sp_3500xe_406990;
@@ -710,7 +705,7 @@ void database(byte id)
       global_number_byte_end_of_sn = 0;
       global_number_byte_end_of_sn_2 = 0;
       break;
-    case 11:
+    case 12:
       lcd.clear();            lcd.print(F("RICOH 12K   GVCD"));
       lcd.setCursor(0,1);     lcd.print(F("SP 3600/10 4510"));
       global_name_dump = dump_ricoh_sp_4500he_407318;
@@ -718,7 +713,7 @@ void database(byte id)
       global_number_byte_end_of_sn = 0;
       global_number_byte_end_of_sn_2 = 0;
       break;      
-    case 12:
+    case 13:
       lcd.clear();            lcd.print(F("SAMSUNG 3K  VDCG"));
       lcd.setCursor(0,1);     lcd.print(F("SCX 4200/20"));
       global_name_dump = dump_samsung_scx_d4200a;
@@ -726,7 +721,7 @@ void database(byte id)
       global_number_byte_end_of_sn = 63;
       global_number_byte_end_of_sn_2 = 0;
       break;
-    case 13:
+    case 14:
       lcd.clear();            lcd.print(F("XEROX 3K    VDCG"));
       lcd.setCursor(0,1);     lcd.print(F("WC 3119"));
       global_name_dump = dump_xerox_013R00625;
@@ -734,7 +729,7 @@ void database(byte id)
       global_number_byte_end_of_sn = 63;
       global_number_byte_end_of_sn_2 = 0;
       break;
-    case 14:
+    case 15:
       lcd.clear();            lcd.print(F("XEROX 8K    GCDV"));
       lcd.setCursor(0,1);     lcd.print(F("WC 4118"));
       global_name_dump = dump_xerox_006R01278;
@@ -742,30 +737,14 @@ void database(byte id)
       global_number_byte_end_of_sn = 63;
       global_number_byte_end_of_sn_2 = 191;
       break;
-    case 15:
+    case 16:
       lcd.clear();            lcd.print(F("XEROX 2K    VDCG"));
       lcd.setCursor(0,1);     lcd.print(F("PE 220"));
       global_name_dump = dump_xerox_013R00621;
       global_size_dump = sizeof(dump_xerox_013R00621);
       global_number_byte_end_of_sn = 63;
       global_number_byte_end_of_sn_2 = 0;
-      break; 
-    case 16:
-      lcd.clear();            lcd.print(F("RICOH 2.6K  GVCD"));
-      lcd.setCursor(0,1);     lcd.print(F("NEW SP 201 TEST"));
-      global_name_dump = dump_ricoh_sp_201s_407261;
-      global_size_dump = sizeof(dump_ricoh_sp_201s_407261);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break; 
-    case 17:
-      lcd.clear();            lcd.print(F("RICOH 2.6K  GVCD"));
-      lcd.setCursor(0,1);     lcd.print(F("NEW SP 277 TEST"));
-      global_name_dump = dump_ricoh_sp_277_408160;
-      global_size_dump = sizeof(dump_ricoh_sp_277_408160);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;     
+      break;        
   }    
 }
 
