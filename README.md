@@ -46,7 +46,8 @@ Chip Resetter for Ricoh, Samsung and Xerox
 - Ricoh SP 111 (SP 110E)
 - Ricoh SP 150 (408010)
 - Ricoh SP 200HL 2.6K (407262) for Ricoh SP SP200/202/203/210/212 
-- Ricoh SP 201HE 2.6K (111135) for Ricoh SP201/204/211/213/220 
+- Ricoh SP 201HE 2.6K (111135) for Ricoh SP201/204/211/213/220
+- Ricoh Aficio SP С220 С221 С222 С240 (406144, 406145, 406146, 406147)
 - Ricoh Aficio SP C250/C260 (407543/407544/407545/407546) for Ricoh SP C250/C260
 - Ricoh Aficio SP C252 (407716,407717,407718,407719)
 - Ricoh SP 277 на 2.6K (408160) for Ricoh SP 277
