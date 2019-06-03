@@ -22,7 +22,7 @@ Chip Resetter for Ricoh, Samsung and Xerox
 
 Прошивка/обновление обнулятора:
 
-1.	Устанавливаем Arduino IDE версии 1.6.5 (на 1.8.5 тоже работает проверенно)
+1.	Устанавливаем Arduino IDE 
 2.	Устанавливаем библиотеки в Arduino IDE (инструкция в папке Library)
 3.	Открываем sketch и заливаем его в Arduino UNO
 
