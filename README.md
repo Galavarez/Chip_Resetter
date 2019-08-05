@@ -56,7 +56,8 @@ Chip Resetter for Ricoh, Samsung and Xerox
 - Ricoh SP 277 на 2.6K (408160) for Ricoh SP 277
 - Ricoh SP 300 1.5K (406956) for Ricoh SP 300DN
 - Ricoh SP 311HE 3.5K (407246) for Ricoh SP 311/325  
-- Ricoh SP 311UXE 6.4K (821242) for Ricoh SP 311/325  
+- Ricoh SP 311UXE 6.4K (821242) for Ricoh SP 311/325 
+- Ricoh SP 400/450 5k (408061)
 - Ricoh SP 3400HE 5K (406522) for Ricoh SP3400/3410/3500/3510
 - Ricoh SP 3500XE 6.4K (406990) для Ricoh SP3500/3510  
 - Ricoh SP 4500HE 12K (407318) for Ricoh SP3600/3610/4510  
