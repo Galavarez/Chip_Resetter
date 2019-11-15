@@ -1,6 +1,6 @@
 # Chip_Resetter
-Chip Resetter for Ricoh, Samsung and Xerox
-
+**Chip Resetter for Ricoh, Samsung and Xerox**
+***
 Представляю на ваше обозрение обнулятор чипов сделаный на Arduino UNO для картриджей Ricoh, Samsung и Xerox которые основанные на чипе (AT24CXX и его аналога 5ME3).
 
 Цель была простая, получить обнулятор не дорогой и быстро собираемый.
