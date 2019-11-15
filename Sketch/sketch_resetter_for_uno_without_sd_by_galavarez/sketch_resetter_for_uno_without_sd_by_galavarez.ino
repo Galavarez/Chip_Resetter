@@ -1,5 +1,16 @@
 /* 
 Auto Resetter wthiout sd card by Galavarez
+* Версия 15.11.2019
+- На днях один из пользователей обнулятора (Манаков Юрий) подкинули идею о чтение дампа через обнулятор. 
+Не много поразмыслив, я сделал такую возможность, но с небольшим ограничением. Можно дамп только вывести в монитор порта в ардуино ide (ctrl + shitf + M). 
+Потом можно его скопировать в любой hex редактор с разрешением bin. Вот и получался дамп =)
+Так же сделал несколько подпрограмм на кнопке SELECT (по любому простаивает).
+Инструкция по кнопке селект:
+1) Нажимаем на кнопку селект и выбираем подпрограмму (Показ отпечатанных страниц для рико, Таймер обратного отсчета с прошивкой (вернул его) и считывание дампа (128,256,512 байт)
+2) Как выбрали подпрограмму (точнее остановились на ней), надо подождать 3 секунды и нажать на кнопку SELECT еще раз.
+3) Все, подпрограмма выполнилаль. Надо только попрактиковаться. 
+Если будут косяки пишите =)
+
 * Версия 06.11.2019
 - Добавил новый дамп для Ricoh SP 310 . Спасибо за ссылку Манакову Юрию 
 
@@ -166,12 +177,18 @@ int global_number_byte_end_of_sn_2;
 // Состояние кнопки (защита от повторного срабатывания)
 boolean global_button_press = false; // true - кнопка нажата
 
+// Время отсчета для кнопки SELECT
+unsigned long time_passed = 0; 
+
+// Запоминаем количество нажатий на кнопку
+int global_button_select = 0; 
+
 // Значение кнопок для разных версий LCD Keypad shield. 
 // Настроить под себя если клавиатура плохо работает.
 // Указать значение БОЛЬШЕ чем у вас выдает кнопка
                               // LCD Keypad shield v 1        // LCD Keypad shield v 1.1  (тестировал на 2х Keypad shield)   
 int BUTTON_UP = 150;          // Пример у меня значение 132   // 96 или 100
-int BUTTON_DOWN = 400;        // Пример у меня значение 334   // 251 или 255
+int BUTTON_DOWN = 360;        // Пример у меня значение 334   // 251 или 255
 int BUTTON_RIGHT = 50;        // Пример у меня значение 3     // 0 или 0
 int BUTTON_LEFT = 550;        // Пример у меня значение 482   // 404 или 407
 int BUTTON_SELECT = 800;      // Пример у меня значение 720   // 637 или 638
@@ -739,6 +756,7 @@ const PROGMEM byte dump_xerox_006R01278[512] = {
 
 
 
+
 /****************************** SETUP ******************************/
 
 void setup() 
@@ -773,14 +791,12 @@ void loop()
 
   
   if (analog_number < BUTTON_RIGHT && global_button_press == false) // Если это кнопка Right и другие кнопки не нажаты то
-  {   
-    
+  {     
     // Значение кнопки
-    print_sensor_value();
+    print_sensor_value("RIGHT");
     
     if (analog_debonce(BUTTON_RIGHT) == true) // делаем проверку от дребезга кнопок
     {
-       Serial.println(F("CLICK BUTTON RIGHT"));
       // Увеличиваем счетчик
       global_id++;
       
@@ -801,11 +817,11 @@ void loop()
   else if (analog_number < BUTTON_UP && global_button_press == false) // Если это кнопка UP и другие кнопки не нажаты то
   {
     // Значение кнопки
-    print_sensor_value();
+    print_sensor_value("UP");
     
     if (analog_debonce(BUTTON_UP) == true) // делаем проверку от дребезга кнопок
     {
-       Serial.println(F("CLICK BUTTON UP")); // UPLOAD -- закачиваем дамп
+      // Serial.println(F("CLICK BUTTON UP")); // UPLOAD -- закачиваем дамп
       // Подаем питание и сканируем шину i2c на наличие чипа
       power_on_for_chip();
       
@@ -826,34 +842,38 @@ void loop()
       // Возврат в меню
       database(global_id);
 
-      // Тест данных
-      //test_chip_on_pc(128);
     }
   }
   else if (analog_number < BUTTON_DOWN && global_button_press == false) // Если это кнопка Down и другие кнопки не нажаты то
   {
     // Значение кнопки
-    print_sensor_value();
+    print_sensor_value("DOWN");
     
     if (analog_debonce(BUTTON_DOWN) == true) // делаем проверку от дребезга кнопок
     {
-      Serial.println(F("CLICK BUTTON DOWN"));
       // Подаем питание и сканируем шину i2c на наличие чипа
       power_on_for_chip();
+      
       // Считываем чип и показываем его на lcd
-      read_chip_and_display_it();      
+      read_chip_and_display_it();  
+      
+      // Чтение дампа и вывод его в порт монитора
+      // extract_dump();    
+      
       // Выключаем питание
       power_off_for_chip();
+
+      // Возврат в меню
+      database(global_id);
     }
   }
   else if (analog_number < BUTTON_LEFT && global_button_press == false) // Если это кнопка Left и другие кнопки не нажаты то
   {
     // Значение кнопки
-    print_sensor_value();
+    print_sensor_value("LEFT");
     
     if (analog_debonce(BUTTON_LEFT) == true) // делаем проверку от дребезга кнопок
     {
-      Serial.println(F("CLICK BUTTON LEFT"));
       // Уменьшаем счетчик 
       global_id--; 
       
@@ -873,42 +893,90 @@ void loop()
   else if (analog_number < BUTTON_SELECT && global_button_press == false) // Если это кнопка Select и другие кнопки не нажаты то
   {    
     // Значение кнопки
-    print_sensor_value(); 
+    print_sensor_value("SELECT");    
     
     if (analog_debonce(BUTTON_SELECT) == true)  // делаем проверку от дребезга кнопок
     {
-      Serial.println(F("CLICK BUTTON SELECT")); 
+        // Если time_passed раверн 0 значит нажали внопку в первый раз
+        if ( time_passed == 0) 
+        { 
+          time_passed = millis(); // Запоминаем время нажатие кнопки 
+        }
+        else if ( (millis() - time_passed) < 3000 ) // Если нажание на кнопку было МЕНЬШЕ 3х секунд назад т.е. листаем меню
+        {
+          global_button_select++; // Увеличиваем счетчик меню
+        }
 
-      // Показываем количество отпечатаных страниц в чипах Ricoh
-      total_pages_on_display_ricoh();
-      
-      /* Таймер заменил на количество отпечатаных страниц в чипах Ricoh, кому надо раскомментируйте строки.
-        
-      // Таймер обратного отсчета
-      countdown_timer();
-      
-      // Подаем питание и сканируем шину i2c на наличие чипа
-      power_on_for_chip();
-      
-      //Скоростная прошивка чипа
-      if(global_size_dump <= 256)
-      {
-        firmware_24c01_02();
-      }
-      else
-      {
-        firmware_24c04_16();
-      }
-      
-      // Выключаем питание
-      power_off_for_chip();
-      */
-      
-      // Возврат в меню
-      database(global_id);
-    }
-
-   
+        // Если повторное нажатие кнопки SELECT было БОЛЬШЕ 3х секунд назад, выполняем запуск выбранной функции
+        if ( millis() - time_passed > 3000) 
+        {
+           // Выполнаем функции
+           switch(global_button_select)
+           {
+            case 0:
+              total_pages_on_display_ricoh(); // Показываем на дисплей количество страниц из чипа (только для Ricoh)
+              break;
+            case 1:
+              firmware_chip_with_timer(5); // В скобках сколько секунд ждать перед пршивкой   
+              break;
+            case 2:
+              extract_dump(128);  // Показываем в мониторе порта дамп с чипа первые 128 байт      
+              break;
+            case 3:
+              extract_dump(256);  // Показываем в мониторе порта дамп с чипа первые 256 байт       
+              break; 
+            case 4:
+              extract_dump(512);   // Показываем в мониторе порта дамп с чипа первые 512 байт         
+              break;  
+           }
+           // Обнуляем переменные времени и количество нажатий на кнопку
+           time_passed = 0;
+           global_button_select = 0;
+        }
+        else // Иначе листаем меню
+        {
+          restart_switch: // точка возварат switch по default
+          
+          switch(global_button_select)
+          {
+            case 0:
+              lcd.clear();
+              lcd.print(F("NUMBER PRINTED")); 
+              lcd.setCursor(0,1);
+              lcd.print(F("PAGES ON PRINTER"));               
+              break;
+            case 1:
+              lcd.clear();
+              lcd.print(F("FIRMWARE CHIP"));
+              lcd.setCursor(0,1);
+              lcd.print(F("WITH TIMER"));
+              break;
+            case 2:
+              lcd.clear();
+              lcd.print(F("READ DUMP ON PC"));
+              lcd.setCursor(0,1);
+              lcd.print(F("128 BYTES"));             
+              break;
+            case 3:
+              lcd.clear();
+              lcd.print(F("READ DUMP ON PC"));
+              lcd.setCursor(0,1);
+              lcd.print(F("256 BYTES"));
+              break;
+            case 4:
+              lcd.clear();
+              lcd.print(F("READ DUMP ON PC"));
+              lcd.setCursor(0,1);
+              lcd.print(F("512 BYTES"));
+              break;
+            default:
+              // Обнуление перемен и возварт в начало меню
+              global_button_select = 0;
+              goto restart_switch;
+          }
+          time_passed = millis(); // Запоминаем время когда нажали кнопку
+        } 
+    }   
   }
   
   // Обнуляем переменную globalBntPress если все кнопки отпущены
@@ -921,10 +989,12 @@ void test()
   lcd.print("ok");
 }
 /****************************** ПРОВЕРКА ЗНАЧЕНИЙ КНОПОК ******************************/
-void print_sensor_value()
+void print_sensor_value(String name_button)
 {
   Serial.println("");
-  Serial.print("Значение выдаваемое кнопкой:");
+  Serial.print("Значение выдаваемое кнопкой ");
+  Serial.print(name_button);
+  Serial.print(":");
   Serial.println(analogRead(0)); // Проверка кнопок, какие они выдают значения.
 }
 
@@ -976,160 +1046,8 @@ void database(byte id)
       global_size_dump = sizeof(dump_ricoh_sp_201_hl_111135);
       global_number_byte_end_of_sn = 0;
       global_number_byte_end_of_sn_2 = 0;
-      break; 
+      break;
     case 6:
-      lcd.clear();            lcd.print(F("RICOH 2.6K  GVCD"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 277"));
-      global_name_dump = dump_ricoh_sp_277_408160;
-      global_size_dump = sizeof(dump_ricoh_sp_277_408160);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;  
-    case 7:
-      lcd.clear();            lcd.print(F("RICOH 1.5K  GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 300"));
-      global_name_dump = dump_ricoh_sp_300_406956;
-      global_size_dump = sizeof(dump_ricoh_sp_300_406956);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;    
-    case 8:
-      lcd.clear();            lcd.print(F("RICOH 3.5K  GVCD"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 311/325"));
-      global_name_dump = dump_ricoh_sp_311_407246;
-      global_size_dump = sizeof(dump_ricoh_sp_311_407246);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 9:
-      lcd.clear();            lcd.print(F("RICOH 6.4K  GVCD"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 311/325"));
-      global_name_dump = dump_ricoh_sp_311_821242;
-      global_size_dump = sizeof(dump_ricoh_sp_311_821242);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 10:
-      lcd.clear();            lcd.print(F("RICOH 5K    GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("3400/10 3500/10"));
-      global_name_dump = dump_ricoh_sp_3400he_406522;
-      global_size_dump = sizeof(dump_ricoh_sp_3400he_406522);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 11:
-      lcd.clear();            lcd.print(F("RICOH 6.4K  GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("ONLY 3500/10"));
-      global_name_dump = dump_ricoh_sp_3500xe_406990;
-      global_size_dump = sizeof(dump_ricoh_sp_3500xe_406990);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 12:
-      lcd.clear();            lcd.print(F("RICOH 12K   GVCD"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 3600/10 4510"));
-      global_name_dump = dump_ricoh_sp_4500he_407318;
-      global_size_dump = sizeof(dump_ricoh_sp_4500he_407318);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;      
-    case 13:
-      lcd.clear();            lcd.print(F("SAMSUNG 3K  VDCG"));
-      lcd.setCursor(0,1);     lcd.print(F("SCX 4200/20"));
-      global_name_dump = dump_samsung_scx_d4200a;
-      global_size_dump = sizeof(dump_samsung_scx_d4200a);
-      global_number_byte_end_of_sn = 63;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 14:
-      lcd.clear();            lcd.print(F("XEROX 3K    VDCG"));
-      lcd.setCursor(0,1);     lcd.print(F("WC 3119"));
-      global_name_dump = dump_xerox_013R00625;
-      global_size_dump = sizeof(dump_xerox_013R00625);
-      global_number_byte_end_of_sn = 63;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 15:
-      lcd.clear();            lcd.print(F("XEROX 8K    GCDV"));
-      lcd.setCursor(0,1);     lcd.print(F("WC 4118"));
-      global_name_dump = dump_xerox_006R01278;
-      global_size_dump = sizeof(dump_xerox_006R01278);
-      global_number_byte_end_of_sn = 63;
-      global_number_byte_end_of_sn_2 = 191;
-      break;
-    case 16:
-      lcd.clear();            lcd.print(F("XEROX 2K    VDCG"));
-      lcd.setCursor(0,1);     lcd.print(F("PE 220"));
-      global_name_dump = dump_xerox_013R00621;
-      global_size_dump = sizeof(dump_xerox_013R00621);
-      global_number_byte_end_of_sn = 63;
-      global_number_byte_end_of_sn_2 = 0;
-      break;   
-    case 17:
-      lcd.clear();            lcd.print(F("RICOH 2K  GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 250/260 B"));
-      global_name_dump = dump_ricoh_sp_c250_c260_407543_black;
-      global_size_dump = sizeof(dump_ricoh_sp_c250_c260_407543_black);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 18:
-      lcd.clear();            lcd.print(F("RICOH 1.6K  GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 250/260 C"));
-      global_name_dump = dump_ricoh_sp_c250_c260_407544_cyan;
-      global_size_dump = sizeof(dump_ricoh_sp_c250_c260_407544_cyan);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 19:
-      lcd.clear();            lcd.print(F("RICOH 1.6K  GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 250/260 M"));
-      global_name_dump = dump_ricoh_sp_c250_c260_407545_magenta;
-      global_size_dump = sizeof(dump_ricoh_sp_c250_c260_407545_magenta);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 20:
-      lcd.clear();            lcd.print(F("RICOH 1.6K  GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 250/260 Y"));
-      global_name_dump = dump_ricoh_sp_c250_c260_407546_yellow;
-      global_size_dump = sizeof(dump_ricoh_sp_c250_c260_407546_yellow);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 21:
-      lcd.clear();            lcd.print(F("RICOH 6.5K  GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 252 B"));
-      global_name_dump = dump_ricoh_sp_c252_407716_black;
-      global_size_dump = sizeof(dump_ricoh_sp_c252_407716_black);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 22:
-      lcd.clear();            lcd.print(F("RICOH 6K    GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 252 C"));
-      global_name_dump = dump_ricoh_sp_c252_407717_cyan;
-      global_size_dump = sizeof(dump_ricoh_sp_c252_407717_cyan);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 23:
-      lcd.clear();            lcd.print(F("RICOH 6K    GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 252 M"));
-      global_name_dump = dump_ricoh_sp_c252_407718_magenta;
-      global_size_dump = sizeof(dump_ricoh_sp_c252_407718_magenta);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 24:
-      lcd.clear();            lcd.print(F("RICOH 6K    GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 252 Y"));
-      global_name_dump = dump_ricoh_sp_c252_407719_yellow;
-      global_size_dump = sizeof(dump_ricoh_sp_c252_407719_yellow);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-   case 25:
       lcd.clear();            lcd.print(F("RICOH 2K    GVDC"));
       lcd.setCursor(0,1);     lcd.print(F("C220-222 240 B"));
       global_name_dump = dump_ricoh_sp_c220_221_222_240_406144_black;
@@ -1137,7 +1055,7 @@ void database(byte id)
       global_number_byte_end_of_sn = 0;
       global_number_byte_end_of_sn_2 = 0;
       break;
-   case 26:
+   case 7:
       lcd.clear();            lcd.print(F("RICOH 2K    GVDC"));
       lcd.setCursor(0,1);     lcd.print(F("C220-222 240 C"));
       global_name_dump = dump_ricoh_sp_c220_221_222_240_406145_cyan;
@@ -1145,7 +1063,7 @@ void database(byte id)
       global_number_byte_end_of_sn = 0;
       global_number_byte_end_of_sn_2 = 0;
       break;
-   case 27:
+   case 8:
       lcd.clear();            lcd.print(F("RICOH 2K    GVDC"));
       lcd.setCursor(0,1);     lcd.print(F("C220-222 240 M"));
       global_name_dump = dump_ricoh_sp_c220_221_222_240_406146_magenta;
@@ -1153,7 +1071,7 @@ void database(byte id)
       global_number_byte_end_of_sn = 0;
       global_number_byte_end_of_sn_2 = 0;
       break;
-   case 28:
+   case 9:
       lcd.clear();            lcd.print(F("RICOH 2K    GVDC"));
       lcd.setCursor(0,1);     lcd.print(F("C220-222 240 Y"));
       global_name_dump = dump_ricoh_sp_c220_221_222_240_406147_yellow;
@@ -1161,23 +1079,87 @@ void database(byte id)
       global_number_byte_end_of_sn = 0;
       global_number_byte_end_of_sn_2 = 0;
       break;
-   case 29:
-      lcd.clear();            lcd.print(F("RICOH 5K    GVCD"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 400/450"));
-      global_name_dump = dump_ricoh_sp_400_450;
-      global_size_dump = sizeof(dump_ricoh_sp_400_450);
+    case 10:
+      lcd.clear();            lcd.print(F("RICOH 2K  GVDC"));
+      lcd.setCursor(0,1);     lcd.print(F("SP 250/260 B"));
+      global_name_dump = dump_ricoh_sp_c250_c260_407543_black;
+      global_size_dump = sizeof(dump_ricoh_sp_c250_c260_407543_black);
       global_number_byte_end_of_sn = 0;
       global_number_byte_end_of_sn_2 = 0;
       break;
-    case 30:
-      lcd.clear();            lcd.print(F("RICOH 7K    GVCD"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 330"));
-      global_name_dump = dump_ricoh_sp_330_408283;
-      global_size_dump = sizeof(dump_ricoh_sp_330_408283);
+    case 11:
+      lcd.clear();            lcd.print(F("RICOH 1.6K  GVDC"));
+      lcd.setCursor(0,1);     lcd.print(F("SP 250/260 C"));
+      global_name_dump = dump_ricoh_sp_c250_c260_407544_cyan;
+      global_size_dump = sizeof(dump_ricoh_sp_c250_c260_407544_cyan);
       global_number_byte_end_of_sn = 0;
       global_number_byte_end_of_sn_2 = 0;
       break;
-    case 31:
+    case 12:
+      lcd.clear();            lcd.print(F("RICOH 1.6K  GVDC"));
+      lcd.setCursor(0,1);     lcd.print(F("SP 250/260 M"));
+      global_name_dump = dump_ricoh_sp_c250_c260_407545_magenta;
+      global_size_dump = sizeof(dump_ricoh_sp_c250_c260_407545_magenta);
+      global_number_byte_end_of_sn = 0;
+      global_number_byte_end_of_sn_2 = 0;
+      break;
+    case 13:
+      lcd.clear();            lcd.print(F("RICOH 1.6K  GVDC"));
+      lcd.setCursor(0,1);     lcd.print(F("SP 250/260 Y"));
+      global_name_dump = dump_ricoh_sp_c250_c260_407546_yellow;
+      global_size_dump = sizeof(dump_ricoh_sp_c250_c260_407546_yellow);
+      global_number_byte_end_of_sn = 0;
+      global_number_byte_end_of_sn_2 = 0;
+      break;
+    case 14:
+      lcd.clear();            lcd.print(F("RICOH 6.5K  GVDC"));
+      lcd.setCursor(0,1);     lcd.print(F("SP 252 B"));
+      global_name_dump = dump_ricoh_sp_c252_407716_black;
+      global_size_dump = sizeof(dump_ricoh_sp_c252_407716_black);
+      global_number_byte_end_of_sn = 0;
+      global_number_byte_end_of_sn_2 = 0;
+      break;
+    case 15:
+      lcd.clear();            lcd.print(F("RICOH 6K    GVDC"));
+      lcd.setCursor(0,1);     lcd.print(F("SP 252 C"));
+      global_name_dump = dump_ricoh_sp_c252_407717_cyan;
+      global_size_dump = sizeof(dump_ricoh_sp_c252_407717_cyan);
+      global_number_byte_end_of_sn = 0;
+      global_number_byte_end_of_sn_2 = 0;
+      break;
+    case 16:
+      lcd.clear();            lcd.print(F("RICOH 6K    GVDC"));
+      lcd.setCursor(0,1);     lcd.print(F("SP 252 M"));
+      global_name_dump = dump_ricoh_sp_c252_407718_magenta;
+      global_size_dump = sizeof(dump_ricoh_sp_c252_407718_magenta);
+      global_number_byte_end_of_sn = 0;
+      global_number_byte_end_of_sn_2 = 0;
+      break;
+    case 17:
+      lcd.clear();            lcd.print(F("RICOH 6K    GVDC"));
+      lcd.setCursor(0,1);     lcd.print(F("SP 252 Y"));
+      global_name_dump = dump_ricoh_sp_c252_407719_yellow;
+      global_size_dump = sizeof(dump_ricoh_sp_c252_407719_yellow);
+      global_number_byte_end_of_sn = 0;
+      global_number_byte_end_of_sn_2 = 0;
+      break; 
+    case 18:
+      lcd.clear();            lcd.print(F("RICOH 2.6K  GVCD"));
+      lcd.setCursor(0,1);     lcd.print(F("SP 277"));
+      global_name_dump = dump_ricoh_sp_277_408160;
+      global_size_dump = sizeof(dump_ricoh_sp_277_408160);
+      global_number_byte_end_of_sn = 0;
+      global_number_byte_end_of_sn_2 = 0;
+      break;  
+    case 19:
+      lcd.clear();            lcd.print(F("RICOH 1.5K  GVDC"));
+      lcd.setCursor(0,1);     lcd.print(F("SP 300"));
+      global_name_dump = dump_ricoh_sp_300_406956;
+      global_size_dump = sizeof(dump_ricoh_sp_300_406956);
+      global_number_byte_end_of_sn = 0;
+      global_number_byte_end_of_sn_2 = 0;
+      break; 
+    case 20:
       lcd.clear();            lcd.print(F("RICOH 6K    GVDC"));
       lcd.setCursor(0,1);     lcd.print(F("SP 310 B"));
       global_name_dump = dump_ricoh_sp_310_406479_black;
@@ -1185,7 +1167,7 @@ void database(byte id)
       global_number_byte_end_of_sn = 0;
       global_number_byte_end_of_sn_2 = 0;
       break;
-    case 32:
+    case 21:
       lcd.clear();            lcd.print(F("RICOH 6K    GVDC"));
       lcd.setCursor(0,1);     lcd.print(F("SP 310 Y"));
       global_name_dump = dump_ricoh_sp_310_406482_yellow;
@@ -1193,7 +1175,7 @@ void database(byte id)
       global_number_byte_end_of_sn = 0;
       global_number_byte_end_of_sn_2 = 0;
       break;
-    case 33:
+    case 22:
       lcd.clear();            lcd.print(F("RICOH 6K    GVDC"));
       lcd.setCursor(0,1);     lcd.print(F("SP 310 M"));
       global_name_dump = dump_ricoh_sp_310_122728_magenta;
@@ -1201,15 +1183,102 @@ void database(byte id)
       global_number_byte_end_of_sn = 0;
       global_number_byte_end_of_sn_2 = 0;
       break;
-    case 34:
+    case 23:
       lcd.clear();            lcd.print(F("RICOH 6K    GVDC"));
       lcd.setCursor(0,1);     lcd.print(F("SP 310 C"));
       global_name_dump = dump_ricoh_sp_310_122700_cyan;
       global_size_dump = sizeof(dump_ricoh_sp_310_122700_cyan);
       global_number_byte_end_of_sn = 0;
       global_number_byte_end_of_sn_2 = 0;
+      break;   
+    case 24:
+      lcd.clear();            lcd.print(F("RICOH 3.5K  GVCD"));
+      lcd.setCursor(0,1);     lcd.print(F("SP 311/325"));
+      global_name_dump = dump_ricoh_sp_311_407246;
+      global_size_dump = sizeof(dump_ricoh_sp_311_407246);
+      global_number_byte_end_of_sn = 0;
+      global_number_byte_end_of_sn_2 = 0;
       break;
-
+    case 25:
+      lcd.clear();            lcd.print(F("RICOH 6.4K  GVCD"));
+      lcd.setCursor(0,1);     lcd.print(F("SP 311/325"));
+      global_name_dump = dump_ricoh_sp_311_821242;
+      global_size_dump = sizeof(dump_ricoh_sp_311_821242);
+      global_number_byte_end_of_sn = 0;
+      global_number_byte_end_of_sn_2 = 0;
+      break;
+    case 26:
+      lcd.clear();            lcd.print(F("RICOH 7K    GVCD"));
+      lcd.setCursor(0,1);     lcd.print(F("SP 330"));
+      global_name_dump = dump_ricoh_sp_330_408283;
+      global_size_dump = sizeof(dump_ricoh_sp_330_408283);
+      global_number_byte_end_of_sn = 0;
+      global_number_byte_end_of_sn_2 = 0;
+      break;
+    case 27:
+      lcd.clear();            lcd.print(F("RICOH 5K    GVCD"));
+      lcd.setCursor(0,1);     lcd.print(F("SP 400/450"));
+      global_name_dump = dump_ricoh_sp_400_450;
+      global_size_dump = sizeof(dump_ricoh_sp_400_450);
+      global_number_byte_end_of_sn = 0;
+      global_number_byte_end_of_sn_2 = 0;
+      break;   
+    case 28:
+      lcd.clear();            lcd.print(F("RICOH 5K    GVDC"));
+      lcd.setCursor(0,1);     lcd.print(F("3400/10 3500/10"));
+      global_name_dump = dump_ricoh_sp_3400he_406522;
+      global_size_dump = sizeof(dump_ricoh_sp_3400he_406522);
+      global_number_byte_end_of_sn = 0;
+      global_number_byte_end_of_sn_2 = 0;
+      break;
+    case 29:
+      lcd.clear();            lcd.print(F("RICOH 6.4K  GVDC"));
+      lcd.setCursor(0,1);     lcd.print(F("ONLY 3500/10"));
+      global_name_dump = dump_ricoh_sp_3500xe_406990;
+      global_size_dump = sizeof(dump_ricoh_sp_3500xe_406990);
+      global_number_byte_end_of_sn = 0;
+      global_number_byte_end_of_sn_2 = 0;
+      break;
+    case 30:
+      lcd.clear();            lcd.print(F("RICOH 12K   GVCD"));
+      lcd.setCursor(0,1);     lcd.print(F("SP 3600/10 4510"));
+      global_name_dump = dump_ricoh_sp_4500he_407318;
+      global_size_dump = sizeof(dump_ricoh_sp_4500he_407318);
+      global_number_byte_end_of_sn = 0;
+      global_number_byte_end_of_sn_2 = 0;
+      break;      
+    case 31:
+      lcd.clear();            lcd.print(F("SAMSUNG 3K  VDCG"));
+      lcd.setCursor(0,1);     lcd.print(F("SCX 4200/20"));
+      global_name_dump = dump_samsung_scx_d4200a;
+      global_size_dump = sizeof(dump_samsung_scx_d4200a);
+      global_number_byte_end_of_sn = 63;
+      global_number_byte_end_of_sn_2 = 0;
+      break;
+     case 32:
+      lcd.clear();            lcd.print(F("XEROX 2K    VDCG"));
+      lcd.setCursor(0,1);     lcd.print(F("PE 220"));
+      global_name_dump = dump_xerox_013R00621;
+      global_size_dump = sizeof(dump_xerox_013R00621);
+      global_number_byte_end_of_sn = 63;
+      global_number_byte_end_of_sn_2 = 0;
+      break;  
+    case 33:
+      lcd.clear();            lcd.print(F("XEROX 3K    VDCG"));
+      lcd.setCursor(0,1);     lcd.print(F("WC 3119"));
+      global_name_dump = dump_xerox_013R00625;
+      global_size_dump = sizeof(dump_xerox_013R00625);
+      global_number_byte_end_of_sn = 63;
+      global_number_byte_end_of_sn_2 = 0;
+      break;
+    case 34:
+      lcd.clear();            lcd.print(F("XEROX 8K    GCDV"));
+      lcd.setCursor(0,1);     lcd.print(F("WC 4118"));
+      global_name_dump = dump_xerox_006R01278;
+      global_size_dump = sizeof(dump_xerox_006R01278);
+      global_number_byte_end_of_sn = 63;
+      global_number_byte_end_of_sn_2 = 191;
+      break;   
   }    
 }
 
@@ -1376,11 +1445,11 @@ void firmware_24c01_02()
   for (int i = 0; i < count; i++) 
   {    
     array_bytes[i] = pgm_read_byte(&global_name_dump[i]); // Заполняем массив
-    Serial.println(pgm_read_byte(&global_name_dump[i]), HEX);
+    //Serial.println(pgm_read_byte(&global_name_dump[i]), HEX);
   }
   eeprom.writeBytes(address, count, array_bytes); // Записываем в чип
-  Serial.println(address);
-  Serial.println(count);
+  //Serial.println(address);
+  //Serial.println(count);
   
   lcd.print(F("DONE !!!"));
   lcd.noBlink(); // отключаем мигание курсора
@@ -1556,8 +1625,6 @@ void print_sn_on_lcd()
 
 void read_chip_and_display_it()
 {
-  power_on_for_chip();
-  
   Eeprom24C04_16 eeprom(address_eeprom);
   eeprom.initialize(); 
 
@@ -1589,23 +1656,53 @@ void read_chip_and_display_it()
   }
   lcd.clear();
   /*
-  for (int i=0; i < 17; i++)
+  for (int i=0; i < 128; i++)
   {
-    char a = (char)eeprom.readByte(i+i2); // Получаем ascii
+    char a = (char)eeprom.readByte(i); // Получаем ascii
     char b; // 
     if (a < 32){ b = 32; } // если a 0 то ставим пробел HEX(32)
     else{ b = a; }
-    lcd.print(b); // 15 31 47 63 79 95 111 127
-    lcd.setCursor(i,0);
-    Serial.println(eeprom.readByte(i+i2));
+    //lcd.print(b); // 15 31 47 63 79 95 111 127
+    //lcd.setCursor(i,0);
+    Serial.println(eeprom.readByte(i));
   }
   */
-  power_off_for_chip();
 
   // Показываем текущий чип на экране
   database(global_id); 
 }
 
+/************************************* ПОКАЗ ДАМПА В МОНИТОРЕ ПОРТА *************************************/
+void extract_dump(int sizeof_chip)
+{ 
+  // Включаем питание
+  power_on_for_chip();
+  
+  Eeprom24C04_16 eeprom(address_eeprom);
+  eeprom.initialize();
+  
+  //int sizeof_chip = capacity_chip;  // Количество байт в чипе
+  int num_str_in_chip = sizeof_chip / 16; // Количство строк в чипе
+
+  Serial.println(F("Чтение дампа из чипа:"));
+  for (int count_str = 0; count_str < num_str_in_chip;  count_str++)
+  {
+    for (int i = 0; i < 16 ; i++)
+    {  
+      unsigned char letter = (unsigned char)eeprom.readByte(i + count_str * 16); // Получаем байт из чипа
+      if (letter < 16){ Serial.print(F("0")); } // Если это число меньше 16 то добавляем 0 спереди
+      Serial.print(letter, HEX); 
+      Serial.print(F(" "));
+    }
+    Serial.println(F("")); // Переход на новую строку
+  }
+
+  // Включаем питание
+  power_off_for_chip();
+
+  // Показываем текущий чип на экране
+  database(global_id);
+}
 /************************************* ПРОВЕРКА КОНТАКТА НА ЧИПЕ *************************************/
 void check_contact()
 {
@@ -1630,11 +1727,37 @@ void check_contact()
   database(global_id);
 }
 
-/************************************* ТАЙМЕР ОБРАТНОГО ОТСЧЕТА *************************************/
-void countdown_timer()
+/************************************* ПРОШИВКА ЧИПА С ТАЙМЕРОМ *************************************/
+void firmware_chip_with_timer(int timer)
 {
-  int timer = 8; // Время которое ждем перед прошивкой чипа
-  lcd.clear(); lcd.print(F("COUNTDOWN TIMER"));
+  // Таймер обратного отсчета
+  countdown_timer(timer);
+      
+  // Подаем питание и сканируем шину i2c на наличие чипа
+  power_on_for_chip();
+      
+  //Скоростная прошивка чипа
+  if(global_size_dump <= 256)
+  {
+    firmware_24c01_02();
+  }
+  else
+  {
+    firmware_24c04_16();
+  }
+     
+  // Выключаем питание
+  power_off_for_chip();  
+
+  // Возврат в меню
+  database(global_id);
+}
+/************************************* ТАЙМЕР ОБРАТНОГО ОТСЧЕТА *************************************/
+void countdown_timer(int timer)
+{
+  //int timer = 8; // Время которое ждем перед прошивкой чипа
+  lcd.clear(); 
+  lcd.print(F("COUNTDOWN TIMER"));
   for(int i = timer; i > 0; i--)
   {
     lcd.setCursor(0,1);
@@ -1647,13 +1770,14 @@ void countdown_timer()
 /************************************* ПОКАЗ ОТПЕЧАТАННЫХ СТРАНИЦ ДЛЯ RICOH *************************************/
 void total_pages_on_display_ricoh()
 {
+  // Включаем питание
   power_on_for_chip();
   
   Eeprom24C04_16 eeprom(address_eeprom);
   eeprom.initialize(); 
 
   lcd.clear();
-  lcd.print(F("TOTAL PAGES"));
+  lcd.print(F("TOTAL PAGE"));
   lcd.setCursor(0,1);
     
   byte HigherByte = eeprom.readByte(65); // Считываем 65 байт это старшый разряд
@@ -1661,14 +1785,16 @@ void total_pages_on_display_ricoh()
   int Result = (HigherByte << 8) | LowerByte; // соединяем 2 разряда в одно
   
   lcd.print(Result); // показываем число на экран
-  delay(5000); // 5 секунд
-
-  lcd.clear();
   
+  //delay(5000); // 5 секунд
+
+  //lcd.clear();
+
+  // Включаем питание
   power_off_for_chip();
 
   // Показываем текущий чип на экране
-  database(global_id); 
+  // database(global_id); 
 }
 
 /************************************* ОТЛАДКА *************************************/
