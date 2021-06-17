@@ -64,6 +64,8 @@
 - Ricoh SP 311HE 3.5K (407246) for Ricoh SP 311/325  
 - Ricoh SP 311UXE 6.4K (821242) for Ricoh SP 311/325 
 - Ricoh SP 330N 7k (408283) for Ricoh SP 330SN
+- Ricoh SP 360 (Все кроме черного цвета)
+- Ricoh SP 377 6.4K (408162) 
 - Ricoh SP 400/450 5k (408061)
 - Ricoh SP 3400HE 5K (406522) for Ricoh SP3400/3410/3500/3510
 - Ricoh SP 3500XE 6.4K (406990) для Ricoh SP3500/3510  
