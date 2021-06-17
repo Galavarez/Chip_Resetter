@@ -1,5 +1,14 @@
 /* 
 Auto Resetter wthiout sd card by Galavarez
+* Версия 17.06.2021
+- Переписал код базы данных, теперь добавлять новые чипы станет легче. Надеюсь многие поймут что да как =)
+- Добавил генератор серийного номера для Ricoh sp4500he 407318
+- Добавил 3 дампа для Ricoh SP 360 (Правда черного цвета нет)
+- Добавил дамп для Ricoh SP 377 (спасибо за него Титову Анатолию Викторовичу)
+
+* Версия 27.01.2020
+- Добавил новый дамп для Ricoh SP 360. Спасибо за ссылку Манакову Юрию
+
 * Версия 15.11.2019
 - На днях один из пользователей обнулятора (Манаков Юрий) подкинули идею о чтение дампа через обнулятор. 
 Не много поразмыслив, я сделал такую возможность, но с небольшим ограничением. Можно дамп только вывести в монитор порта в ардуино ide (ctrl + shitf + M). 
@@ -135,70 +144,12 @@ Auto Resetter wthiout sd card by Galavarez
 - Добавил чип Xerox WC 3119 (автоматическая смена номера CRUM)
 */
 
-// Подключаем библиотеку которая позволяет управлять микросхемами 24CXX подключать их на ПИН A4 (SDA), A5 (SCL)
-#include <Eeprom24C01_02.h> // Библиотека работает с 24C01 24C02
-#include <Eeprom24C04_16.h> // Библиотека работает с 24C04 24C08 24C16
-// Подключаем библиотеку которая позволяет взаимодействовать с различными устройствами по интерфейсу I2C / TWI.
-#include <Wire.h> 
-// Подключаем библиотеку которая позволяет управлять различными жидкокристаллическими дисплеями (LCD)
-#include <LiquidCrystal.h>  
-// Подключаем библиотеку для записи статических строк во FLASH а не в RAM 
-// Serial.print(F(Тут_статическая_строка)) или const PROGMEM до вызова SETUP
-// Serial.println(pgm_read_byte(&dump_ricoh_sp_150[i]), HEX); чтение переменной без изменений из FLASH
-#include <avr/pgmspace.h>
-
-// Пины LCD 1602 (RS, E, D4, D5, D6, D7)
-LiquidCrystal lcd( 8, 9, 4, 5, 6, 7 );
-
-// Пин питания у Вас может быть другой
-#define POWER_PIN A2
-// Пин для работы генератора случайных чисел
-#define RANDOM_PIN A3
-
-// Адрес чипа (адрес динамический, меняется от чипа к чипу)
-byte address_eeprom;
-
-// Номер чипа по умолчанию
-byte global_id = 1;
-
-// Кол-во чипов в базе данных
-int global_all_chip_in_database;
-
-// Имя дампа
-const byte *global_name_dump;
-
-// Размер чипа
-int global_size_dump;
-
-// Номер байта конца серийного номера, переменных 2 т.к. серийников может быть два
-int global_number_byte_end_of_sn;
-int global_number_byte_end_of_sn_2;
-
-// Состояние кнопки (защита от повторного срабатывания)
-boolean global_button_press = false; // true - кнопка нажата
-
-// Время отсчета для кнопки SELECT
-unsigned long time_passed = 0; 
-
-// Запоминаем количество нажатий на кнопку
-int global_button_select = 0; 
-
-// Значение кнопок для разных версий LCD Keypad shield. 
-// Настроить под себя если клавиатура плохо работает.
-// Указать значение БОЛЬШЕ чем у вас выдает кнопка
-                              // LCD Keypad shield v 1        // LCD Keypad shield v 1.1  (тестировал на 2х Keypad shield)   
-int BUTTON_UP = 150;          // Пример у меня значение 132   // 96 или 100
-int BUTTON_DOWN = 360;        // Пример у меня значение 334   // 251 или 255
-int BUTTON_RIGHT = 50;        // Пример у меня значение 3     // 0 или 0
-int BUTTON_LEFT = 550;        // Пример у меня значение 482   // 404 или 407
-int BUTTON_SELECT = 800;      // Пример у меня значение 720   // 637 или 638
-
-
 /****************************** ДАМПЫ ЧИПОВ ******************************/
 
 /*********** =====> RICOH <===== *********/
 
 // 24С01_02 // Ricoh SP101E 2K (407059) for Ricoh SP 100 (SF/SU/E)
+const PROGMEM char NOTE_SP_100[] = { "SP 100 (SP 101E)" };
 const PROGMEM byte dump_ricoh_sp_101e_407059[128] = {
   0x20, 0x00, 0x01, 0x03, 0x03, 0x01, 0x01, 0x00, 0x64, 0x00, 0x34, 0x30, 0x36, 0x39, 0x34, 0x37, 
   0x12, 0x04, 0x4D, 0x41, 0x16, 0x00, 0x08, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
@@ -211,6 +162,7 @@ const PROGMEM byte dump_ricoh_sp_101e_407059[128] = {
 };
 
 // 24С01_02 // Ricoh SP 110E 2.6K (407441) for Ricoh SP 111 (SF/SU)
+const PROGMEM char NOTE_SP_111[] = { "SP 111 (SP 110E)" };
 const PROGMEM byte dump_ricoh_sp_110e_407441[128] = {
   0x20, 0x00, 0x01, 0x05, 0x02, 0x01, 0x01, 0x00, 0x64, 0x00, 0x34, 0x30, 0x37, 0x34, 0x34, 0x31, 
   0x17, 0x05, 0x4D, 0x43, 0x01, 0x00, 0x02, 0x51, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
@@ -223,6 +175,7 @@ const PROGMEM byte dump_ricoh_sp_110e_407441[128] = {
 };
 
 // 24С01_02 // Ricoh SP150HE 1.5K (408010) for Ricoh SP 150 (SU/W/SUw)
+const PROGMEM char NOTE_SP_150[] = { "SP 150" };
 const PROGMEM byte dump_ricoh_sp_150_408010[128] = {
   0x32, 0x00, 0x01, 0x03, 0x01, 0x01, 0x01, 0x00, 0x64, 0x00, 0x34, 0x30, 0x38, 0x30, 0x31, 0x30, 
   0x16, 0x03, 0x4D, 0x4D, 0x04, 0x00, 0x01, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
@@ -235,6 +188,7 @@ const PROGMEM byte dump_ricoh_sp_150_408010[128] = {
 };
 
 // 24С01_02 // Ricoh SP200HL 2.6K for Ricoh SP SP200/202/203/210/212 (407262) -- новый дамп
+const PROGMEM char NOTE_SP_200_202_203_210_212[] = { "200/02/03/10/12" };
 const PROGMEM byte dump_ricoh_sp_200_hl_407262[128] = {
   0x21, 0x00, 0x01, 0x03, 0x02, 0x01, 0x01, 0x00, 0x64, 0x00, 0x34, 0x30, 0x37, 0x32, 0x36, 0x32,
   0x13, 0x08, 0x4D, 0x43, 0x13, 0x00, 0x00, 0x91, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -247,6 +201,7 @@ const PROGMEM byte dump_ricoh_sp_200_hl_407262[128] = {
 };
 
 // 24С01_02 // Ricoh SP201HE 2.6K (111135) for Ricoh SP201/204/211/213/220 
+const PROGMEM char NOTE_SP_201_204_211_213_220[] = { "201/04/11/13/20" };
 const PROGMEM byte dump_ricoh_sp_201_hl_111135[128] = {
   0x21, 0x00, 0x01, 0x04, 0x03, 0x01, 0x01, 0x00, 0x00, 0x00, 0x31, 0x31, 0x31, 0x31, 0x35, 0x37, 
   0x13, 0x07, 0x4D, 0x43, 0x11, 0x00, 0x14, 0x91, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x01, 0x00, 
@@ -259,6 +214,7 @@ const PROGMEM byte dump_ricoh_sp_201_hl_111135[128] = {
 };
 
 // 24С01_02 // Ricoh SP 277HE 2.6K series (408160) for Ricoh SP 277NwX / 277SNwX / 277SFNwX
+const PROGMEM char NOTE_SP_277[] = { "SP 277" };
 const PROGMEM byte dump_ricoh_sp_277_408160[128] = {
   0x21, 0x00, 0x01, 0x03, 0x02, 0x01, 0x01, 0x00, 0x64, 0x00, 0x34, 0x30, 0x38, 0x31, 0x36, 0x30, 
   0x16, 0x01, 0x4D, 0x43, 0x27, 0x00, 0x1F, 0x39, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
@@ -271,6 +227,7 @@ const PROGMEM byte dump_ricoh_sp_277_408160[128] = {
 };
 
 // 24С01_02 // Ricoh SP300 1.5K (406956) for Ricoh SP 300DN
+const PROGMEM char NOTE_SP_300[] = { "SP 300" };
 const PROGMEM byte dump_ricoh_sp_300_406956[128] = {
   0x13, 0x00, 0x01, 0x03, 0x03, 0x01, 0x01, 0x00, 0x64, 0x00, 0x34, 0x30, 0x36, 0x39, 0x35, 0x36, 
   0x11, 0x11, 0x4A, 0x4D, 0x51, 0x00, 0x19, 0x76, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
@@ -283,6 +240,7 @@ const PROGMEM byte dump_ricoh_sp_300_406956[128] = {
 };
 
 // 24С01_02 // Ricoh SP 311HE 3.5K (407246) for Ricoh SP 311/325 (DNw/SFw/Nw)
+const PROGMEM char NOTE_SP_311_325_NORMAL[] = { "SP 311/325" };
 const PROGMEM byte dump_ricoh_sp_311_407246[128] = {
   0x07, 0x00, 0x01, 0x03, 0x07, 0x01, 0x01, 0x00, 0x00, 0x00, 0x34, 0x30, 0x37, 0x32, 0x34, 0x36, 
   0x13, 0x00, 0x47, 0x00, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x58, 0x12, 
@@ -295,6 +253,7 @@ const PROGMEM byte dump_ricoh_sp_311_407246[128] = {
 };
 
 // 24С01_02 // Ricoh SP 311UXE 6.4K (821242) for Ricoh SP 311/325 (DNw/SFw/Nw)
+const PROGMEM char NOTE_SP_311_325_LARGE[] = { "SP 311/325" };
 const PROGMEM byte dump_ricoh_sp_311_821242[128] = {
   0x07, 0x00, 0x01, 0x03, 0x0D, 0x01, 0x01, 0x00, 0x64, 0x00, 0x38, 0x32, 0x31, 0x32, 0x34, 0x32, 
   0x15, 0x10, 0x4D, 0x53, 0x22, 0x00, 0x03, 0x85, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
@@ -307,6 +266,7 @@ const PROGMEM byte dump_ricoh_sp_311_821242[128] = {
 };
 
 // 24С01_02 // Ricoh SP 3400HE 5K (406522) for Ricoh SP3400/3410/3500/3510
+const PROGMEM char NOTE_SP_3400_3410_3500_3510[] = { "3400/10 3500/10" };
 const PROGMEM byte dump_ricoh_sp_3400he_406522[128] = {
   0x07, 0x00, 0x01, 0x03, 0x03, 0x01, 0x01, 0x00, 0x64, 0x00, 0x34, 0x30, 0x36, 0x35, 0x32, 0x32, 
   0x11, 0x01, 0x4A, 0x4D, 0x02, 0x01, 0x70, 0x88, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -319,6 +279,7 @@ const PROGMEM byte dump_ricoh_sp_3400he_406522[128] = {
 };
 
 // 24С01_02 // Ricoh SP 3500XE 6.4K (406990) для Ricoh SP3500/3510 (N/DN/SF)
+const PROGMEM char NOTE_SP_3500_3510[] = { "ONLY 3500/10" };
 const PROGMEM byte dump_ricoh_sp_3500xe_406990[128] = {
   0x07, 0x01, 0x01, 0x03, 0x06, 0x01, 0x01, 0x00, 0x00, 0x00, 0x34, 0x30, 0x36, 0x39, 0x39, 0x30,
   0x12, 0x05, 0x4A, 0x4D, 0x53, 0x00, 0x33, 0x83, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -331,6 +292,7 @@ const PROGMEM byte dump_ricoh_sp_3500xe_406990[128] = {
 };
 
 // 24С01_02 // Ricoh SP 4500HE 12K (407318) for Ricoh SP3600/3610/4510 (DN/SF) 
+const PROGMEM char NOTE_SP_3600_3610_4510[] = { "SP 3600/10 4510" };
 const PROGMEM byte dump_ricoh_sp_4500he_407318[128] = {
   0x23, 0x00, 0x01, 0x03, 0x78, 0x01, 0x01, 0x00, 0x64, 0x00, 0x34, 0x30, 0x37, 0x33, 0x31, 0x38, 
   0x14, 0x09, 0x54, 0x4A, 0x03, 0x00, 0x05, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
@@ -344,6 +306,7 @@ const PROGMEM byte dump_ricoh_sp_4500he_407318[128] = {
 
 
 // 24С01_02 // Ricoh SP C250/С260 2K (407543)  Black for Ricoh C250/С260 (DN/DNW/SF/SFNW/FNW)
+const PROGMEM char NOTE_SP_C250_260_B[] = { "SP 250/260 B" };
 const PROGMEM byte dump_ricoh_sp_c250_c260_407543_black[128] = {
   0xA8, 0x00, 0x01, 0x03, 0x12, 0x01, 0x01, 0xFF, 0x64, 0x00, 0x34, 0x30, 0x37, 0x35, 0x34, 0x33, 
   0x14, 0x02, 0x41, 0x42, 0x16, 0x00, 0x1B, 0x32, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
@@ -356,6 +319,7 @@ const PROGMEM byte dump_ricoh_sp_c250_c260_407543_black[128] = {
 };
 
 // 24С01_02 // Ricoh SP C250/С260 1.6K (407544) Cyan for Ricoh C250/С260 (DN/DNW/SF/SFNW/FNW)
+const PROGMEM char NOTE_SP_C250_260_C[] = { "SP 250/260 C" };
 const PROGMEM byte dump_ricoh_sp_c250_c260_407544_cyan[128] = {
   0xA8, 0x00, 0x01, 0x03, 0x0E, 0x02, 0x01, 0xFF, 0x64, 0x00, 0x34, 0x30, 0x37, 0x35, 0x34, 0x34, 
   0x14, 0x02, 0x41, 0x42, 0x17, 0x00, 0x16, 0x35, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -368,6 +332,7 @@ const PROGMEM byte dump_ricoh_sp_c250_c260_407544_cyan[128] = {
 };
 
 // 24С01_02 // Ricoh SP C250/С260 1.6K (407545) Magenta for Ricoh C250/С260 (DN/DNW/SF/SFNW/FNW)
+const PROGMEM char NOTE_SP_C250_260_M[] = { "SP 250/260 M" };
 const PROGMEM byte dump_ricoh_sp_c250_c260_407545_magenta[128] = {
   0xA8, 0x00, 0x01, 0x03, 0x0E, 0x03, 0x01, 0xFF, 0x64, 0x00, 0x34, 0x30, 0x37, 0x35, 0x34, 0x35, 
   0x14, 0x02, 0x41, 0x42, 0x18, 0x00, 0x11, 0x39, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -380,6 +345,7 @@ const PROGMEM byte dump_ricoh_sp_c250_c260_407545_magenta[128] = {
 };
 
 // 24С01_02 // Ricoh SP C250/С260 1.6K (407546) Yellow for Ricoh C250/С260 (DN/DNW/SF/SFNW/FNW)
+const PROGMEM char NOTE_SP_C250_260_Y[] = { "SP 250/260 Y" };
 const PROGMEM byte dump_ricoh_sp_c250_c260_407546_yellow[128] = {
   0xA8, 0x00, 0x01, 0x03, 0x0E, 0x04, 0x01, 0xFF, 0x64, 0x00, 0x34, 0x30, 0x37, 0x35, 0x34, 0x36,
   0x14, 0x02, 0x41, 0x42, 0x19, 0x00, 0x14, 0x36, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -392,6 +358,7 @@ const PROGMEM byte dump_ricoh_sp_c250_c260_407546_yellow[128] = {
 };
 
 // 24С01_02 // Ricoh SP C252 6.5K (407716) Black for Ricoh C252
+const PROGMEM char NOTE_SP_C252_B[] = { "SP 252 B" }; 
 const PROGMEM byte dump_ricoh_sp_c252_407716_black[128] = {
   0xA8, 0x00, 0x01, 0x03, 0x32, 0x01, 0x01, 0xFF, 0x64, 0x00, 0x34, 0x30,
   0x37, 0x37, 0x31, 0x36, 0x14, 0x01, 0x41, 0x42, 0x36, 0x00, 0x36, 0x37,
@@ -407,6 +374,7 @@ const PROGMEM byte dump_ricoh_sp_c252_407716_black[128] = {
 };
 
 // 24С01_02 // Ricoh SP C252 6K (407717) Cyan for Ricoh C252
+const PROGMEM char NOTE_SP_C252_C[] = { "SP 252 C" }; 
 const PROGMEM byte dump_ricoh_sp_c252_407717_cyan[128] = {
   0xA8, 0x00, 0x01, 0x03, 0x32, 0x02, 0x01, 0xFF, 0x64, 0x00, 0x34, 0x30,
   0x37, 0x37, 0x31, 0x37, 0x14, 0x05, 0x41, 0x42, 0x37, 0x01, 0x34, 0x35,
@@ -422,6 +390,7 @@ const PROGMEM byte dump_ricoh_sp_c252_407717_cyan[128] = {
 };
 
 // 24С01_02 // Ricoh SP C252 6K (407718)  Magenta for Ricoh C252
+const PROGMEM char NOTE_SP_C252_M[] = { "SP 252 M" }; 
 const PROGMEM byte dump_ricoh_sp_c252_407718_magenta[128] = {
  0xA8, 0x00, 0x01, 0x03, 0x32, 0x03, 0x01, 0xFF, 0x64, 0x00, 0x34, 0x30,
  0x37, 0x37, 0x31, 0x38, 0x14, 0x03, 0x41, 0x42, 0x38, 0x00, 0x38, 0x37,
@@ -437,6 +406,7 @@ const PROGMEM byte dump_ricoh_sp_c252_407718_magenta[128] = {
 };
 
 // 24С01_02 // Ricoh SP C252 6K (407719) Yellow for Ricoh C252
+const PROGMEM char NOTE_SP_C252_Y[] = { "SP 252 Y" }; 
 const PROGMEM byte dump_ricoh_sp_c252_407719_yellow[128] = {
   0xA8, 0x00, 0x01, 0x03, 0x32, 0x04, 0x01, 0xFF, 0x64, 0x00, 0x34, 0x30,
   0x37, 0x37, 0x31, 0x39, 0x14, 0x01, 0x41, 0x42, 0x39, 0x00, 0x36, 0x31,
@@ -451,7 +421,8 @@ const PROGMEM byte dump_ricoh_sp_c252_407719_yellow[128] = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-// 24С01_02 // Ricoh SP С220 С221 С222 С240  2k (406144) Black 
+// 24С01_02 // Ricoh SP С220 С221 С222 С240  2k (406144) Black
+const PROGMEM char NOTE_SP_C220_B[] = { "C220-222 240 B" };  
 const PROGMEM byte dump_ricoh_sp_c220_221_222_240_406144_black[128] = {
   0xA7, 0x00, 0x01, 0x03, 0x14, 0x01, 0x01, 0xFF, 0x64, 0x00, 0x34, 0x30,
   0x36, 0x31, 0x34, 0x34, 0x09, 0x05, 0x41, 0x42, 0x62, 0x00, 0x37, 0x39,
@@ -466,7 +437,8 @@ const PROGMEM byte dump_ricoh_sp_c220_221_222_240_406144_black[128] = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-// 24С01_02 // Ricoh SP С220 С221 С222 С240  2k (406145) Cyan 
+// 24С01_02 // Ricoh SP С220 С221 С222 С240  2k (406145) Cyan
+const PROGMEM char NOTE_SP_C220_C[] = { "C220-222 240 C" };  
 const PROGMEM byte dump_ricoh_sp_c220_221_222_240_406145_cyan[128] = {
   0xA7, 0x00, 0x01, 0x03, 0x14, 0x02, 0x01, 0xFF, 0x64, 0x00, 0x34, 0x30,
   0x36, 0x31, 0x34, 0x35, 0x09, 0x05, 0x41, 0x42, 0x63, 0x00, 0x14, 0x43,
@@ -482,6 +454,7 @@ const PROGMEM byte dump_ricoh_sp_c220_221_222_240_406145_cyan[128] = {
 };
 
 // 24С01_02 // Ricoh SP С220 С221 С222 С240  2k (406146) Magenta 
+const PROGMEM char NOTE_SP_C220_M[] = { "C220-222 240 M" }; 
 const PROGMEM byte dump_ricoh_sp_c220_221_222_240_406146_magenta[128] = {
   0xA7, 0x00, 0x01, 0x03, 0x14, 0x03, 0x01, 0xFF, 0x64, 0x00, 0x34, 0x30,
   0x36, 0x31, 0x34, 0x36, 0x09, 0x05, 0x41, 0x42, 0x64, 0x00, 0x22, 0x29,
@@ -497,6 +470,7 @@ const PROGMEM byte dump_ricoh_sp_c220_221_222_240_406146_magenta[128] = {
 };
 
 // 24С01_02 // Ricoh SP С220 С221 С222 С240  2k (406147) Yellow 
+const PROGMEM char NOTE_SP_C220_Y[] = { "C220-222 240 Y" }; 
 const PROGMEM byte dump_ricoh_sp_c220_221_222_240_406147_yellow[128] = {
   0xA7, 0x00, 0x01, 0x03, 0x14, 0x04, 0x01, 0xFF, 0x64, 0x00, 0x34, 0x30,
   0x36, 0x31, 0x34, 0x37, 0x09, 0x11, 0x41, 0x42, 0x65, 0x00, 0x07, 0x24,
@@ -512,6 +486,7 @@ const PROGMEM byte dump_ricoh_sp_c220_221_222_240_406147_yellow[128] = {
 };
 
 // 24С01_02 // Ricoh SP SP 400/450  5k (408061)
+const PROGMEM char NOTE_SP_400_450[] = { "SP 400/450" }; 
 const PROGMEM byte dump_ricoh_sp_400_450[128] = {
  0x23, 0x00, 0x01, 0x03, 0x32, 0x01, 0x30, 0x00, 0x64, 0x00, 0x34, 0x30,
   0x38, 0x30, 0x36, 0x31, 0x16, 0x02, 0x54, 0x4A, 0x29, 0x00, 0x02, 0x51,
@@ -528,6 +503,7 @@ const PROGMEM byte dump_ricoh_sp_400_450[128] = {
 
 
 // 24С01_02 // Ricoh SP330H 7K (408283) for Ricoh Ricoh SP 330
+const PROGMEM char NOTE_SP_330[] = { "SP 330" }; 
 const PROGMEM byte dump_ricoh_sp_330_408283[128] = {
   0x45, 0x00, 0x01, 0x04, 0x0E, 0x01, 0x01, 0x00, 0x64, 0x00, 0x34, 0x30,
   0x38, 0x32, 0x38, 0x33, 0x18, 0x07, 0x52, 0x47, 0x14, 0x00, 0x32, 0x38,
@@ -542,7 +518,8 @@ const PROGMEM byte dump_ricoh_sp_330_408283[128] = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-// 24С01_02 // Ricoh SP310 cyan (122700) for Ricoh Ricoh SP 310 
+// 24С01_02 // Ricoh SP310 cyan (122700) for Ricoh Ricoh SP 310
+const PROGMEM char NOTE_SP_310_C[] = { "SP 310 C" }; 
 const PROGMEM byte dump_ricoh_sp_310_122700_cyan[128] = {
   0xA8, 0x00, 0x01, 0x03, 0x32, 0x02, 0x01, 0xFF, 0x64, 0x00, 0x31, 0x32,
   0x32, 0x37, 0x30, 0x30, 0x09, 0x03, 0x41, 0x42, 0x17, 0x00, 0x17, 0x06,
@@ -558,6 +535,7 @@ const PROGMEM byte dump_ricoh_sp_310_122700_cyan[128] = {
 };
 
 // 24С01_02 // Ricoh SP310 black (406479) for Ricoh Ricoh SP 310
+const PROGMEM char NOTE_SP_310_B[] = { "SP 310 B" };
 const PROGMEM byte dump_ricoh_sp_310_406479_black[128] = {
   0xA8, 0x00, 0x01, 0x03, 0x32, 0x01, 0x01, 0xFF, 0x64, 0x00, 0x34, 0x30,
   0x36, 0x34, 0x37, 0x39, 0x11, 0x07, 0x41, 0x42, 0x16, 0x00, 0x37, 0x80,
@@ -574,6 +552,7 @@ const PROGMEM byte dump_ricoh_sp_310_406479_black[128] = {
 
 
 // 24С01_02 // Ricoh SP310 magenta (122728) for Ricoh Ricoh SP 310
+const PROGMEM char NOTE_SP_310_M[] = { "SP 310 M" };
 const PROGMEM byte dump_ricoh_sp_310_122728_magenta[128] = {
 0xA8, 0x00, 0x01, 0x03, 0x32, 0x03, 0x01, 0xFF, 0x64, 0x00, 0x31, 0x32,
   0x32, 0x37, 0x32, 0x38, 0x09, 0x11, 0x41, 0x42, 0x18, 0x00, 0x11, 0x32,
@@ -589,6 +568,7 @@ const PROGMEM byte dump_ricoh_sp_310_122728_magenta[128] = {
 };
 
 // 24С01_02 // Ricoh SP310 yellow (406482) for Ricoh Ricoh SP 310
+const PROGMEM char NOTE_SP_310_Y[] = { "SP 310 Y" };
 const PROGMEM byte dump_ricoh_sp_310_406482_yellow[128] = {
 0xA8, 0x00, 0x01, 0x03, 0x32, 0x04, 0x01, 0xFF, 0x64, 0x00, 0x34, 0x30,
   0x36, 0x34, 0x38, 0x32, 0x11, 0x07, 0x41, 0x42, 0x19, 0x00, 0x02, 0x50,
@@ -603,9 +583,73 @@ const PROGMEM byte dump_ricoh_sp_310_406482_yellow[128] = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
+// 24С01_02 // Ricoh SP360 cyan (408177)
+const PROGMEM char NOTE_SP_360_C[] = { "SP 360 C" };
+const PROGMEM byte dump_ricoh_sp_360_408177_cyan[128] = {
+  0x2F, 0x00, 0x01, 0x02, 0x2A, 0x02, 0x01, 0x00, 0x64, 0x00, 0x34, 0x30,
+  0x38, 0x31, 0x37, 0x37, 0x17, 0x07, 0x54, 0x4A, 0x07, 0x00, 0x25, 0x4E,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x64, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
+// 24С01_02 // Ricoh SP360 magenta (408178)
+const PROGMEM char NOTE_SP_360_M[] = { "SP 360 M" };
+const PROGMEM byte dump_ricoh_sp_360_408178_magenta[128] = {
+  0x2F, 0x00, 0x01, 0x02, 0x2D, 0x03, 0x01, 0x00, 0x64, 0x00, 0x34, 0x30,
+  0x38, 0x31, 0x37, 0x38, 0x17, 0x02, 0x54, 0x4A, 0x07, 0x00, 0x26, 0x4F,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x64, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
+// 24С01_02 // Ricoh SP360 yellow (408179)
+const PROGMEM char NOTE_SP_360_Y[] = { "SP 360 Y" };
+const PROGMEM byte dump_ricoh_sp_360_408179_yellow[128] = {
+ 0x2F, 0x00, 0x01, 0x02, 0x27, 0x04, 0x01, 0x00, 0x64, 0x00, 0x34, 0x30,
+  0x38, 0x31, 0x37, 0x39, 0x17, 0x01, 0x54, 0x4A, 0x07, 0x00, 0x26, 0x46,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x64, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
+// Ricoh SP377 6.4K (408162) => Aficio SP 377DNwX/377SFNwX 
+const PROGMEM char NOTE_SP_377[] = { "SP 377" };
+const PROGMEM byte DUMP_SP_377[128] = {
+  0x07, 0x02, 0x01, 0x02, 0x0D, 0x01, 0x01, 0x00, 0x64, 0x00, 0x34, 0x30,
+  0x38, 0x31, 0x36, 0x31, 0x16, 0x02, 0x4D, 0x53, 0x27, 0x00, 0x07, 0x56,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x64, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
 /*********** =====> SAMSUNG <===== *********/
 
-// 24С04_16 // Samsung SCX-D4200A 3K for Samsung SCX-4200/4220  
+// 24С04_16 // Samsung SCX-D4200A 3K for Samsung SCX-4200/4220 
+const PROGMEM char NOTE_SCX_D4200[] = { "SCX 4200/20" }; 
 const PROGMEM byte dump_samsung_scx_d4200a[512] = {
   0x43, 0x34, 0x32, 0x30, 0x30, 0x45, 0x58, 0x50, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
@@ -644,6 +688,7 @@ const PROGMEM byte dump_samsung_scx_d4200a[512] = {
 /*********** =====> XEROX <===== *********/
 
 // 24С04_16 // Xerox 013R00625 3K for XEROX WC 3119
+const PROGMEM char NOTE_WC_3119[] = { "WC 3119" };
 const PROGMEM byte dump_xerox_013R00625[512] = {
   0xA8, 0xCF, 0x58, 0x45, 0x52, 0x4F, 0x58, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
@@ -680,6 +725,7 @@ const PROGMEM byte dump_xerox_013R00625[512] = {
 };
 
 // 24С04_16 // Xerox 013R00621 2K for XEROX PE 220
+const PROGMEM char NOTE_PE_220[] = { "PE 220" };
 const PROGMEM byte dump_xerox_013R00621[512] = {
   0xA8, 0xCF, 0x58, 0x45, 0x52, 0x4F, 0x58, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -716,6 +762,7 @@ const PROGMEM byte dump_xerox_013R00621[512] = {
 };
 
 // 24С04_16 // Xerox 006R01278 8K for Xerox WC 4118 
+const PROGMEM char NOTE_WC_4118[] = { "WC 4118" };
 const PROGMEM byte dump_xerox_006R01278[512] = {
   0x20, 0x58, 0x45, 0x52, 0x4F, 0x58, 0x32, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
@@ -752,12 +799,173 @@ const PROGMEM byte dump_xerox_006R01278[512] = {
 };
 
 
-/*********** =====> TEST <===== *********/
+/** НАЧАЛО **/
+
+// Подключаем библиотеку которая позволяет управлять микросхемами 24CXX подключать их на ПИН A4 (SDA), A5 (SCL)
+#include <Eeprom24C01_02.h> // Библиотека работает с 24C01 24C02
+#include <Eeprom24C04_16.h> // Библиотека работает с 24C04 24C08 24C16
+// Подключаем библиотеку которая позволяет взаимодействовать с различными устройствами по интерфейсу I2C / TWI.
+#include <Wire.h> 
+// Подключаем библиотеку которая позволяет управлять различными жидкокристаллическими дисплеями (LCD)
+#include <LiquidCrystal.h>  
+// Подключаем библиотеку для записи статических строк во FLASH а не в RAM 
+// Serial.print(F(Тут_статическая_строка)) или const PROGMEM до вызова SETUP
+// Serial.println(pgm_read_byte(&dump_ricoh_sp_150[i]), HEX); чтение переменной без изменений из FLASH
+#include <avr/pgmspace.h>
+
+// Пины LCD 1602 (RS, E, D4, D5, D6, D7)
+LiquidCrystal lcd( 8, 9, 4, 5, 6, 7 );
+
+// Пин питания у Вас может быть другой
+#define POWER_PIN A2
+// Пин для работы генератора случайных чисел
+#define RANDOM_PIN A3
+
+// Адрес чипа (адрес динамический, меняется от чипа к чипу)
+byte address_eeprom;
+
+// Номер чипа по умолчанию
+byte global_id = 0;
+
+// Кол-во чипов в базе данных
+int global_all_chip_in_database;
+
+// Имя дампа
+const byte* global_name_dump;
+
+// Размер чипа
+int global_size_dump;
+
+// Номер функции которая помняет серийник 0 -- замена не нужна
+int global_change_crum;
+
+// Состояние кнопки (защита от повторного срабатывания)
+boolean global_button_press = false; // true - кнопка нажата
+
+// Время отсчета для кнопки SELECT
+unsigned long time_passed = 0; 
+
+// Запоминаем количество нажатий на кнопку
+int global_button_select = 0; 
+
+// Значение кнопок для разных версий LCD Keypad shield. 
+// Настроить под себя если клавиатура плохо работает.
+// Указать значение БОЛЬШЕ чем у вас выдает кнопка
+                              // LCD Keypad shield v 1        // LCD Keypad shield v 1.1  (тестировал на 2х Keypad shield)   
+int BUTTON_UP = 110;          // Пример у меня значение 132   // 96 или 100
+int BUTTON_DOWN = 270;        // Пример у меня значение 334   // 251 или 255
+int BUTTON_RIGHT = 5;        // Пример у меня значение 3     // 0 или 0
+int BUTTON_LEFT = 410;        // Пример у меня значение 482   // 404 или 407
+int BUTTON_SELECT = 650;      // Пример у меня значение 720   // 637 или 638
 
 
+// ** DEFINE ** //
+// => BRAND
+const PROGMEM char BRAND_RICOH[] = { "RICOH" };
+const PROGMEM char BRAND_SAMSUNG[] = { "SAMSUNG" };
+const PROGMEM char BRAND_XEROX[] = { "XEROX" };
+// => PINOUT
+const PROGMEM char PINOUT_GVCD[] = { "GVCD" };
+const PROGMEM char PINOUT_GVDC[] = { "GVDC" };
+const PROGMEM char PINOUT_VDCG[] = { "VDCG" };
+const PROGMEM char PINOUT_GCDV[] = { "GCDV" };
+// => PAGE
+const PROGMEM char PAGE_1_5_K[] = { "1.5K" };
+const PROGMEM char PAGE_2_K[] = { "2K" };
+const PROGMEM char PAGE_2_6_K[] = { "2.6K" };
+const PROGMEM char PAGE_3_K[] = { "3K" };
+const PROGMEM char PAGE_3_5_K[] = { "3.5K" };
+const PROGMEM char PAGE_5_K[] = { "5K" };
+const PROGMEM char PAGE_6_K[] = { "6K" };
+const PROGMEM char PAGE_6_4_K[] = { "6.4K" };
+const PROGMEM char PAGE_6_5_K[] = { "6.5K" };
+const PROGMEM char PAGE_7_K[] = { "7K" };
+const PROGMEM char PAGE_8_K[] = { "8K" };
+const PROGMEM char PAGE_12_K[] = { "12K" };
+// => CHIP_MEMORY
+const PROGMEM int CHIP_MEMORY_128 = 128;
+const PROGMEM int CHIP_MEMORY_512 = 512;
 
+/** Создаем структуру базы данных (проще говоря многомерный массив с разными данными) **/
+struct Struct_DB
+{
+  const char* brand;
+  const char* page;
+  const char* pinout;
+  const char* note;
+  const byte* dump;
+  const int chip_memory;
+  const int change_crum;
+};
+
+/** База Данных **/
+Struct_DB datebase[] = {
+  // Brand, Page, Pinuot, Name, Name_Dump, Size, Crum
+  // Crum 0 = Ни чего не делать ; 1 = Генерация 1 серийника Samsung|Xerox ; 2 - Генерация 2х серийников Samsung|Xerox; 3 - Генерация 1 серийника Ricoh  
+
+  { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVCD, NOTE_SP_100, dump_ricoh_sp_101e_407059, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_2_6_K, PINOUT_GVCD, NOTE_SP_111, dump_ricoh_sp_110e_407441, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_1_5_K, PINOUT_GVCD, NOTE_SP_150, dump_ricoh_sp_150_408010, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_2_6_K, PINOUT_GVCD, NOTE_SP_200_202_203_210_212, dump_ricoh_sp_200_hl_407262, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_2_6_K, PINOUT_GVCD, NOTE_SP_201_204_211_213_220, dump_ricoh_sp_201_hl_111135,CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C220_B, dump_ricoh_sp_c220_221_222_240_406144_black, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C220_C, dump_ricoh_sp_c220_221_222_240_406145_cyan, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C220_M, dump_ricoh_sp_c220_221_222_240_406146_magenta, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C220_Y, dump_ricoh_sp_c220_221_222_240_406147_yellow, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C250_260_B, dump_ricoh_sp_c250_c260_407543_black, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C250_260_M, dump_ricoh_sp_c250_c260_407545_magenta, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C250_260_Y, dump_ricoh_sp_c250_c260_407546_yellow, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C250_260_C, dump_ricoh_sp_c250_c260_407544_cyan, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_6_5_K, PINOUT_GVDC, NOTE_SP_C252_B, dump_ricoh_sp_c252_407716_black, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_C252_C, dump_ricoh_sp_c252_407717_cyan, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_C252_M, dump_ricoh_sp_c252_407718_magenta, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_C252_Y, dump_ricoh_sp_c252_407719_yellow, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_2_6_K, PINOUT_GVCD, NOTE_SP_277, dump_ricoh_sp_277_408160, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_1_5_K, PINOUT_GVDC, NOTE_SP_300, dump_ricoh_sp_300_406956, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_310_B, dump_ricoh_sp_310_406479_black, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_310_Y, dump_ricoh_sp_310_406482_yellow, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_310_M, dump_ricoh_sp_310_122728_magenta, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_310_C, dump_ricoh_sp_310_122700_cyan, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_3_5_K, PINOUT_GVCD, NOTE_SP_311_325_NORMAL, dump_ricoh_sp_311_407246, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_6_4_K, PINOUT_GVCD, NOTE_SP_311_325_LARGE, dump_ricoh_sp_311_821242, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_7_K,   PINOUT_GVCD, NOTE_SP_330, dump_ricoh_sp_330_408283, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_6_4_K, PINOUT_GVCD, NOTE_SP_377, DUMP_SP_377, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_5_K,   PINOUT_GVCD, NOTE_SP_400_450, dump_ricoh_sp_400_450, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_3400_3410_3500_3510, dump_ricoh_sp_3400he_406522, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_6_4_K, PINOUT_GVDC, NOTE_SP_3500_3510, dump_ricoh_sp_3500xe_406990, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_12_K,  PINOUT_GVCD, NOTE_SP_3600_3610_4510, dump_ricoh_sp_4500he_407318, CHIP_MEMORY_128, 3 },      // 3 функция с 23 начало
+  { BRAND_SAMSUNG,  PAGE_3_K,   PINOUT_VDCG, NOTE_SCX_D4200, dump_samsung_scx_d4200a, CHIP_MEMORY_512 , 1 },                 // 1 функция с 63 начало
+  { BRAND_XEROX,    PAGE_2_K,   PINOUT_VDCG, NOTE_PE_220, dump_xerox_013R00621, CHIP_MEMORY_512, 1 },                              // 1 функция с 63 начало
+  { BRAND_XEROX,    PAGE_3_K,   PINOUT_VDCG, NOTE_WC_3119, dump_xerox_013R00625, CHIP_MEMORY_512 , 1 },                             // 1 функция с 63 начало
+  { BRAND_XEROX,    PAGE_8_K,   PINOUT_GCDV, NOTE_WC_4118, dump_xerox_006R01278, CHIP_MEMORY_512 , 2 },                             // 2 функция с 63 начало и 191
+  { BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_Y, dump_ricoh_sp_360_408179_yellow, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_M, dump_ricoh_sp_360_408178_magenta, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_C, dump_ricoh_sp_360_408177_cyan, CHIP_MEMORY_128 , 0 }           // Последняя строка без запятой !!!
+ 
+  // { "", "", "", , sizeof(), 0 }, // шаблон 
+};
+
+void set_global_variables(int row)
+{
+  // Показываем на LCD brand, page, pinout, note
+  lcd.clear();
+  lcd.setCursor(0,0);
+  for(byte i1=0; i1 < strlen_P(datebase[row].brand); i1++){ lcd.print((char)pgm_read_byte(&datebase[row].brand[i1])); }   
+  lcd.print(" ");
+  for(byte i2=0; i2 < strlen_P(datebase[row].page); i2++){ lcd.print((char)pgm_read_byte(&datebase[row].page[i2])); }  
+  lcd.setCursor(12,0);
+  for(byte i3=0; i3 < strlen_P(datebase[row].pinout); i3++){ lcd.print((char)pgm_read_byte(&datebase[row].pinout[i3])); }  
+  lcd.setCursor(0,1);  
+  for(byte i4=0; i4 < strlen_P(datebase[row].note); i4++){ lcd.print((char)pgm_read_byte(&datebase[row].note[i4])); }
+  
+  // Устанавливаем глобальные переменные dump chip_memory change_crum
+  global_name_dump = datebase[row].dump;
+  global_size_dump = datebase[row].chip_memory; 
+  global_change_crum = datebase[row].change_crum;
+}
 
 /****************************** SETUP ******************************/
+
 
 void setup() 
 {   
@@ -773,13 +981,20 @@ void setup()
   // Пин А3 для работы генератора случайных чисел
   randomSeed(analogRead(RANDOM_PIN));
 
-  // Показываем первый чип на экране
-  database(global_id);  
-   
+  // Подсчитываем сколько чипов в Базе 
+  global_all_chip_in_database = ( sizeof(datebase) / sizeof(Struct_DB) ) - 1 ; 
+  //Serial.print("Rows in DB => ");
+  //Serial.println( global_all_chip_in_database );
+  
+  // Устанавливаем глобальные переменные и показываем первый чип на экране
+  set_global_variables(global_id);
+
+  
 }
 
 
 /****************************** LOOP ******************************/
+
 
 void loop() 
 {  
@@ -797,19 +1012,18 @@ void loop()
     
     if (analog_debonce(BUTTON_RIGHT) == true) // делаем проверку от дребезга кнопок
     {
-      // Увеличиваем счетчик
-      global_id++;
-      
-      if (global_id <= global_all_chip_in_database)
+        
+      if (global_id != global_all_chip_in_database)
       {
-        // Показываем на экране следующий чип
-        database(global_id);
+        // Увеличиваем счетчик и показываем на экране следующий чип
+        global_id++;
+        set_global_variables(global_id);
       }
       else
       {
         // Показываем на экране 1 чип
-        global_id = 1;
-        database(global_id);
+        global_id = 0;
+        set_global_variables(global_id);
       }
       
     }
@@ -840,7 +1054,7 @@ void loop()
       power_off_for_chip();
 
       // Возврат в меню
-      database(global_id);
+      set_global_variables(global_id);
 
     }
   }
@@ -864,7 +1078,7 @@ void loop()
       power_off_for_chip();
 
       // Возврат в меню
-      database(global_id);
+      set_global_variables(global_id);
     }
   }
   else if (analog_number < BUTTON_LEFT && global_button_press == false) // Если это кнопка Left и другие кнопки не нажаты то
@@ -874,19 +1088,18 @@ void loop()
     
     if (analog_debonce(BUTTON_LEFT) == true) // делаем проверку от дребезга кнопок
     {
-      // Уменьшаем счетчик 
-      global_id--; 
-      
+        
       if (global_id != 0)
       {
-        // Показываем на экране предыдущий чип
-        database(global_id);
+        // Уменьшаем счетчик и показываем предыдущий чип
+        global_id--; 
+        set_global_variables(global_id);
       }
       else
       {
         // Показываем на экране последний чип в базе данных
         global_id = global_all_chip_in_database; 
-        database(global_id);
+        set_global_variables(global_id);
       }
     }
   }
@@ -984,303 +1197,16 @@ void loop()
    
 }
 
-void test()
-{
-  lcd.print("ok");
-}
 /****************************** ПРОВЕРКА ЗНАЧЕНИЙ КНОПОК ******************************/
 void print_sensor_value(String name_button)
 {
-  Serial.println("");
-  Serial.print("Значение выдаваемое кнопкой ");
+  Serial.println(F(""));
+  Serial.print(F("Значение выдаваемое кнопкой "));
   Serial.print(name_button);
-  Serial.print(":");
+  Serial.print(F(":"));
   Serial.println(analogRead(0)); // Проверка кнопок, какие они выдают значения.
 }
 
-/****************************** БАЗА ДАННЫХ ******************************/
-void database(byte id)
-{
-  // Кол-во чипов в БД, менять число при добавления или удаления чипов
-  global_all_chip_in_database = 34; 
-
-  // Поиск чипа
-  switch (id)
-  {    
-    case 1:
-      lcd.clear();            lcd.print(F("RICOH 2K    GVCD"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 100 (SP 101E)"));
-      global_name_dump = dump_ricoh_sp_101e_407059; // ссылка на дамп
-      global_size_dump = sizeof(dump_ricoh_sp_101e_407059); // размер дампа
-      global_number_byte_end_of_sn = 0; // младший разряд первого серийного номера, если 0 то серийного номера нет
-      global_number_byte_end_of_sn_2 = 0; // младший разряд второго серийного номера, если 0 то серийного номера нет
-      break;
-    case 2:
-      lcd.clear();            lcd.print(F("RICOH 2.6K  GVCD"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 111 (SP 110E)"));
-      global_name_dump = dump_ricoh_sp_110e_407441;
-      global_size_dump = sizeof(dump_ricoh_sp_110e_407441);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;      
-    case 3:
-      lcd.clear();            lcd.print(F("RICOH 1.5K  GVCD"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 150"));
-      global_name_dump = dump_ricoh_sp_150_408010;
-      global_size_dump = sizeof(dump_ricoh_sp_150_408010);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 4:
-      lcd.clear();            lcd.print(F("RICOH 2.6K  GVCD"));
-      lcd.setCursor(0,1);     lcd.print(F("200/02/03/10/12"));
-      global_name_dump = dump_ricoh_sp_200_hl_407262;
-      global_size_dump = sizeof(dump_ricoh_sp_200_hl_407262);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 5:
-      lcd.clear();            lcd.print(F("RICOH 2.6K  GVCD"));
-      lcd.setCursor(0,1);     lcd.print(F("201/04/11/13/20"));
-      global_name_dump = dump_ricoh_sp_201_hl_111135;
-      global_size_dump = sizeof(dump_ricoh_sp_201_hl_111135);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 6:
-      lcd.clear();            lcd.print(F("RICOH 2K    GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("C220-222 240 B"));
-      global_name_dump = dump_ricoh_sp_c220_221_222_240_406144_black;
-      global_size_dump = sizeof(dump_ricoh_sp_c220_221_222_240_406144_black);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-   case 7:
-      lcd.clear();            lcd.print(F("RICOH 2K    GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("C220-222 240 C"));
-      global_name_dump = dump_ricoh_sp_c220_221_222_240_406145_cyan;
-      global_size_dump = sizeof(dump_ricoh_sp_c220_221_222_240_406145_cyan);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-   case 8:
-      lcd.clear();            lcd.print(F("RICOH 2K    GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("C220-222 240 M"));
-      global_name_dump = dump_ricoh_sp_c220_221_222_240_406146_magenta;
-      global_size_dump = sizeof(dump_ricoh_sp_c220_221_222_240_406146_magenta);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-   case 9:
-      lcd.clear();            lcd.print(F("RICOH 2K    GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("C220-222 240 Y"));
-      global_name_dump = dump_ricoh_sp_c220_221_222_240_406147_yellow;
-      global_size_dump = sizeof(dump_ricoh_sp_c220_221_222_240_406147_yellow);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 10:
-      lcd.clear();            lcd.print(F("RICOH 2K  GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 250/260 B"));
-      global_name_dump = dump_ricoh_sp_c250_c260_407543_black;
-      global_size_dump = sizeof(dump_ricoh_sp_c250_c260_407543_black);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 11:
-      lcd.clear();            lcd.print(F("RICOH 1.6K  GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 250/260 C"));
-      global_name_dump = dump_ricoh_sp_c250_c260_407544_cyan;
-      global_size_dump = sizeof(dump_ricoh_sp_c250_c260_407544_cyan);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 12:
-      lcd.clear();            lcd.print(F("RICOH 1.6K  GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 250/260 M"));
-      global_name_dump = dump_ricoh_sp_c250_c260_407545_magenta;
-      global_size_dump = sizeof(dump_ricoh_sp_c250_c260_407545_magenta);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 13:
-      lcd.clear();            lcd.print(F("RICOH 1.6K  GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 250/260 Y"));
-      global_name_dump = dump_ricoh_sp_c250_c260_407546_yellow;
-      global_size_dump = sizeof(dump_ricoh_sp_c250_c260_407546_yellow);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 14:
-      lcd.clear();            lcd.print(F("RICOH 6.5K  GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 252 B"));
-      global_name_dump = dump_ricoh_sp_c252_407716_black;
-      global_size_dump = sizeof(dump_ricoh_sp_c252_407716_black);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 15:
-      lcd.clear();            lcd.print(F("RICOH 6K    GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 252 C"));
-      global_name_dump = dump_ricoh_sp_c252_407717_cyan;
-      global_size_dump = sizeof(dump_ricoh_sp_c252_407717_cyan);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 16:
-      lcd.clear();            lcd.print(F("RICOH 6K    GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 252 M"));
-      global_name_dump = dump_ricoh_sp_c252_407718_magenta;
-      global_size_dump = sizeof(dump_ricoh_sp_c252_407718_magenta);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 17:
-      lcd.clear();            lcd.print(F("RICOH 6K    GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 252 Y"));
-      global_name_dump = dump_ricoh_sp_c252_407719_yellow;
-      global_size_dump = sizeof(dump_ricoh_sp_c252_407719_yellow);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break; 
-    case 18:
-      lcd.clear();            lcd.print(F("RICOH 2.6K  GVCD"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 277"));
-      global_name_dump = dump_ricoh_sp_277_408160;
-      global_size_dump = sizeof(dump_ricoh_sp_277_408160);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;  
-    case 19:
-      lcd.clear();            lcd.print(F("RICOH 1.5K  GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 300"));
-      global_name_dump = dump_ricoh_sp_300_406956;
-      global_size_dump = sizeof(dump_ricoh_sp_300_406956);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break; 
-    case 20:
-      lcd.clear();            lcd.print(F("RICOH 6K    GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 310 B"));
-      global_name_dump = dump_ricoh_sp_310_406479_black;
-      global_size_dump = sizeof(dump_ricoh_sp_310_406479_black);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 21:
-      lcd.clear();            lcd.print(F("RICOH 6K    GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 310 Y"));
-      global_name_dump = dump_ricoh_sp_310_406482_yellow;
-      global_size_dump = sizeof(dump_ricoh_sp_310_406482_yellow);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 22:
-      lcd.clear();            lcd.print(F("RICOH 6K    GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 310 M"));
-      global_name_dump = dump_ricoh_sp_310_122728_magenta;
-      global_size_dump = sizeof(dump_ricoh_sp_310_122728_magenta);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 23:
-      lcd.clear();            lcd.print(F("RICOH 6K    GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 310 C"));
-      global_name_dump = dump_ricoh_sp_310_122700_cyan;
-      global_size_dump = sizeof(dump_ricoh_sp_310_122700_cyan);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;   
-    case 24:
-      lcd.clear();            lcd.print(F("RICOH 3.5K  GVCD"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 311/325"));
-      global_name_dump = dump_ricoh_sp_311_407246;
-      global_size_dump = sizeof(dump_ricoh_sp_311_407246);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 25:
-      lcd.clear();            lcd.print(F("RICOH 6.4K  GVCD"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 311/325"));
-      global_name_dump = dump_ricoh_sp_311_821242;
-      global_size_dump = sizeof(dump_ricoh_sp_311_821242);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 26:
-      lcd.clear();            lcd.print(F("RICOH 7K    GVCD"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 330"));
-      global_name_dump = dump_ricoh_sp_330_408283;
-      global_size_dump = sizeof(dump_ricoh_sp_330_408283);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 27:
-      lcd.clear();            lcd.print(F("RICOH 5K    GVCD"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 400/450"));
-      global_name_dump = dump_ricoh_sp_400_450;
-      global_size_dump = sizeof(dump_ricoh_sp_400_450);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;   
-    case 28:
-      lcd.clear();            lcd.print(F("RICOH 5K    GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("3400/10 3500/10"));
-      global_name_dump = dump_ricoh_sp_3400he_406522;
-      global_size_dump = sizeof(dump_ricoh_sp_3400he_406522);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 29:
-      lcd.clear();            lcd.print(F("RICOH 6.4K  GVDC"));
-      lcd.setCursor(0,1);     lcd.print(F("ONLY 3500/10"));
-      global_name_dump = dump_ricoh_sp_3500xe_406990;
-      global_size_dump = sizeof(dump_ricoh_sp_3500xe_406990);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 30:
-      lcd.clear();            lcd.print(F("RICOH 12K   GVCD"));
-      lcd.setCursor(0,1);     lcd.print(F("SP 3600/10 4510"));
-      global_name_dump = dump_ricoh_sp_4500he_407318;
-      global_size_dump = sizeof(dump_ricoh_sp_4500he_407318);
-      global_number_byte_end_of_sn = 0;
-      global_number_byte_end_of_sn_2 = 0;
-      break;      
-    case 31:
-      lcd.clear();            lcd.print(F("SAMSUNG 3K  VDCG"));
-      lcd.setCursor(0,1);     lcd.print(F("SCX 4200/20"));
-      global_name_dump = dump_samsung_scx_d4200a;
-      global_size_dump = sizeof(dump_samsung_scx_d4200a);
-      global_number_byte_end_of_sn = 63;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-     case 32:
-      lcd.clear();            lcd.print(F("XEROX 2K    VDCG"));
-      lcd.setCursor(0,1);     lcd.print(F("PE 220"));
-      global_name_dump = dump_xerox_013R00621;
-      global_size_dump = sizeof(dump_xerox_013R00621);
-      global_number_byte_end_of_sn = 63;
-      global_number_byte_end_of_sn_2 = 0;
-      break;  
-    case 33:
-      lcd.clear();            lcd.print(F("XEROX 3K    VDCG"));
-      lcd.setCursor(0,1);     lcd.print(F("WC 3119"));
-      global_name_dump = dump_xerox_013R00625;
-      global_size_dump = sizeof(dump_xerox_013R00625);
-      global_number_byte_end_of_sn = 63;
-      global_number_byte_end_of_sn_2 = 0;
-      break;
-    case 34:
-      lcd.clear();            lcd.print(F("XEROX 8K    GCDV"));
-      lcd.setCursor(0,1);     lcd.print(F("WC 4118"));
-      global_name_dump = dump_xerox_006R01278;
-      global_size_dump = sizeof(dump_xerox_006R01278);
-      global_number_byte_end_of_sn = 63;
-      global_number_byte_end_of_sn_2 = 191;
-      break;   
-  }    
-}
 
 /****************************** ЗАЩИТА ОТ ДРЕБЕЗГА КНОПОК И ПОВТОРНЫХ НАЖАТИЙ ******************************/
 
@@ -1305,8 +1231,7 @@ void power_on_for_chip()
 {
   digitalWrite(POWER_PIN, HIGH); // Подаем питания на A2 для запитки чипа
   delay(500); // Задержка для поднятия напряжения
-  //search_address_chip(); // Сканируем шину I2C на наличия чипа и сохраняем адрес его в памяти
-  search_address_chip_2();
+  search_address_chip_2(); // Сканируем шину I2C на наличия чипа и сохраняем адрес его в памяти
 }
 
 /****************************** ВЫКЛЮЧАЕМ ПИТАНИЯ ЧИПА ******************************/
@@ -1411,19 +1336,6 @@ void firmware()
   
   // Проверка чипа
   verification_dump();
-
-  // Смена серийного номера чипа если это нужно 
-  if (global_number_byte_end_of_sn > 0) // Если серийник есть то меняем его
-  {
-    if (global_number_byte_end_of_sn_2 > 0) // Если серийников 2 то меняем в двух местах
-    {
-      change_crum_two(global_number_byte_end_of_sn, global_number_byte_end_of_sn_2);
-    }
-    else // иначе меняем в одном
-    {
-      change_crum_one(global_number_byte_end_of_sn);
-    }
-  }
 }
 
 /****************************** СКОРОСТНАЯ ПРОШИВКА ЧИПОВ 24c01-02 до 256 байт в чипе ******************************/
@@ -1457,18 +1369,8 @@ void firmware_24c01_02()
   // Проверка чипа
   verification_dump();
 
-  // Смена серийного номера чипа если это нужно 
-  if (global_number_byte_end_of_sn > 0) // Если серийник есть то меняем его
-  {
-    if (global_number_byte_end_of_sn_2 > 0) // Если серийников 2 то меняем в двух местах
-    {
-      change_crum_two(global_number_byte_end_of_sn, global_number_byte_end_of_sn_2);
-    }
-    else // иначе меняем в одном
-    {
-      change_crum_one(global_number_byte_end_of_sn);
-    }
-  }
+  //Смена серийного номера
+  change_crum_select();
 }
 
 /****************************** СКОРОСТНАЯ ПРОШИВКА ЧИПОВ 24c04-16 более 512 байт в чипе ******************************/
@@ -1501,18 +1403,8 @@ void firmware_24c04_16()
   // Проверка чипа
   verification_dump();
 
-  // Смена серийного номера чипа если это нужно 
-  if (global_number_byte_end_of_sn > 0) // Если серийник есть то меняем его
-  {
-    if (global_number_byte_end_of_sn_2 > 0) // Если серийников 2 то меняем в двух местах
-    {
-      change_crum_two(global_number_byte_end_of_sn, global_number_byte_end_of_sn_2);
-    }
-    else // иначе меняем в одном
-    {
-      change_crum_one(global_number_byte_end_of_sn);
-    }
-  }
+  //Смена серийного номера
+  change_crum_select();
 }
 
 /************************************* ПРОВЕРКА ДАМПА ПОСЛЕ ПРОШИВКИ *************************************/
@@ -1550,13 +1442,39 @@ void verification_dump()
   }
 }
 
-/****************************** ГЕНЕРАТОР СЕРИЙНОГО НОМЕРА ******************************/
-void change_crum_one(int address_low_byte_sn)
+
+/** ГЕНЕРАТОР СЕРИЙНОГО НОМЕРА ВЕРСИЯ 3 **/
+// Выбор какая функция смены серийного номера заработает
+void change_crum_select()
+{  
+  switch (global_change_crum)
+  {
+    case 0:
+      break;
+    case 1: 
+      change_crum_one_samsung_xerox();
+      break;
+    case 2:
+      change_crum_two_xerox();
+      break;
+    case 3:
+      change_crum_ricoh();
+      break;
+    default:
+      break;
+  }
+}
+
+
+// Генератора для Samsung или Xerox где надо сменить 1 номер 
+// Младший разряд находится в 63 байте
+// ...
+void change_crum_one_samsung_xerox()
 {  
   Eeprom24C04_16 eeprom(address_eeprom);
   eeprom.initialize(); 
    
-  int temp_sn_one = address_low_byte_sn; // Получаем номер байта серийника
+  int temp_sn_one = 63; // Получаем номер байта серийника
   for (int i = 6; i > 0; i--) // меняем 6 младших разрядов серийника
   {   
    int randomNum = random(48, 57); // ANSI (48-58) а в DEC (0-9)
@@ -1569,13 +1487,16 @@ void change_crum_one(int address_low_byte_sn)
   print_sn_on_lcd();
 }
 
-void change_crum_two(int address_low_byte_sn_1, int address_low_byte_sn_2)
+// Генератора для Samsung или Xerox где надо сменить 2 номерa 
+// Младший разряд находится в 63 байте и в 191
+// ...
+void change_crum_two_xerox()
 {
   Eeprom24C04_16 eeprom(address_eeprom);
   eeprom.initialize();
 
-  int temp_sn_one = address_low_byte_sn_1;
-  int temp_sn_two = address_low_byte_sn_2;
+  int temp_sn_one = 63;
+  int temp_sn_two = 191;
   for (int i = 5; i > 0; i--) // меняем 5 последних разрядов серийника
   {
     int randomNum = random(48, 57); // ANSI (48-58) а в DEC (0-9)
@@ -1593,6 +1514,26 @@ void change_crum_two(int address_low_byte_sn_1, int address_low_byte_sn_2)
   print_sn_on_lcd();
 }
 
+// Генератора для Ricoh где надо сменить 1 номер
+// Младший разряд находится в 23 байте
+// ...
+void change_crum_ricoh()
+{
+  Eeprom24C04_16 eeprom(address_eeprom);
+  eeprom.initialize(); 
+   
+  int temp_sn_one = 23; // Получаем номер байта серийника
+  for (int i = 2; i > 0; i--) // меняем 2 младших разрядов серийника
+  {   
+   int randomNum = random(48, 57); // ANSI (48-58) а в DEC (0-9)
+   eeprom.writeByte(temp_sn_one, randomNum); // Записываем значение в адрес
+   delay(10); // пауза для записи в ячейку EEPROM 
+   temp_sn_one--; // переход к старшему разряду
+   Serial.println(randomNum);
+  }
+  Serial.println(F("CHANGE CRUM END")); 
+}
+
 /************************************* ВЫВОД СЕРИЙНОГО НОМЕРА НА LCD *************************************/
 void print_sn_on_lcd()
 {  
@@ -1608,6 +1549,7 @@ void print_sn_on_lcd()
   Serial.println(F("SERIAL NUMBER")); 
   Serial.print(F("CRUM-")); 
   //
+  int global_number_byte_end_of_sn = 63;
   int temp_start = global_number_byte_end_of_sn - 10;
   int temp_end = global_number_byte_end_of_sn + 1;
   for(int i = temp_start; i < temp_end; i++)
@@ -1669,7 +1611,7 @@ void read_chip_and_display_it()
   */
 
   // Показываем текущий чип на экране
-  database(global_id); 
+  set_global_variables(global_id); 
 }
 
 /************************************* ПОКАЗ ДАМПА В МОНИТОРЕ ПОРТА *************************************/
@@ -1701,7 +1643,7 @@ void extract_dump(int sizeof_chip)
   power_off_for_chip();
 
   // Показываем текущий чип на экране
-  database(global_id);
+  set_global_variables(global_id);
 }
 /************************************* ПРОВЕРКА КОНТАКТА НА ЧИПЕ *************************************/
 void check_contact()
@@ -1724,7 +1666,7 @@ void check_contact()
   }
   delay(1000);
   // Показываем текущий чип на экране
-  database(global_id);
+  set_global_variables(global_id);
 }
 
 /************************************* ПРОШИВКА ЧИПА С ТАЙМЕРОМ *************************************/
@@ -1750,7 +1692,7 @@ void firmware_chip_with_timer(int timer)
   power_off_for_chip();  
 
   // Возврат в меню
-  database(global_id);
+  set_global_variables(global_id);
 }
 /************************************* ТАЙМЕР ОБРАТНОГО ОТСЧЕТА *************************************/
 void countdown_timer(int timer)
@@ -1765,7 +1707,6 @@ void countdown_timer(int timer)
     delay(1000); // Задержка в 1 сек перед повтором цикла
   }
 }
-
 
 /************************************* ПОКАЗ ОТПЕЧАТАННЫХ СТРАНИЦ ДЛЯ RICOH *************************************/
 void total_pages_on_display_ricoh()
@@ -1821,3 +1762,42 @@ int memoryFree()
 }
 
 */
+/*
+  { "RICOH 2K", "GVCD", "SP 100 (SP 101E)", dump_ricoh_sp_101e_407059, sizeof(dump_ricoh_sp_101e_407059), 0 },
+  { "RICOH 2.6K", "GVCD", "SP 111 (SP 110E)", dump_ricoh_sp_110e_407441, sizeof(dump_ricoh_sp_110e_407441), 0 },
+  { "RICOH 1.5K", "GVCD", "SP 150", dump_ricoh_sp_150_408010, sizeof(dump_ricoh_sp_150_408010), 0 },
+  { "RICOH 2.6K", "GVCD", "200/02/03/10/12", dump_ricoh_sp_200_hl_407262, sizeof(dump_ricoh_sp_200_hl_407262), 0 },
+  { "RICOH 2.6K", "GVCD", "201/04/11/13/20", dump_ricoh_sp_201_hl_111135, sizeof(dump_ricoh_sp_201_hl_111135), 0 },
+  { "RICOH 2K", "GVDC", "C220-222 240 B", dump_ricoh_sp_c220_221_222_240_406144_black, sizeof(dump_ricoh_sp_c220_221_222_240_406144_black), 0 },
+  { "RICOH 2K", "GVDC", "C220-222 240 C", dump_ricoh_sp_c220_221_222_240_406145_cyan, sizeof(dump_ricoh_sp_c220_221_222_240_406145_cyan), 0 },
+  { "RICOH 2K", "GVDC", "C220-222 240 M", dump_ricoh_sp_c220_221_222_240_406146_magenta, sizeof(dump_ricoh_sp_c220_221_222_240_406146_magenta), 0 },
+  { "RICOH 2K", "GVDC", "C220-222 240 Y", dump_ricoh_sp_c220_221_222_240_406147_yellow, sizeof(dump_ricoh_sp_c220_221_222_240_406147_yellow), 0 },
+  { "RICOH 2K", "GVDC", "SP 250/260 B", dump_ricoh_sp_c250_c260_407543_black, sizeof(dump_ricoh_sp_c250_c260_407543_black), 0 },
+  { "RICOH 2K", "GVDC", "SP 250/260 M", dump_ricoh_sp_c250_c260_407545_magenta, sizeof(dump_ricoh_sp_c250_c260_407545_magenta), 0 },
+  { "RICOH 2K", "GVDC", "SP 250/260 Y", dump_ricoh_sp_c250_c260_407546_yellow, sizeof(dump_ricoh_sp_c250_c260_407546_yellow), 0 },
+  { "RICOH 2K", "GVDC", "SP 250/260 C", dump_ricoh_sp_c250_c260_407544_cyan, sizeof(dump_ricoh_sp_c250_c260_407544_cyan), 0 },
+  { "RICOH 6.5K", "GVDC", "SP 252 B", dump_ricoh_sp_c252_407716_black, sizeof(dump_ricoh_sp_c252_407716_black), 0 },
+  { "RICOH 6K", "GVDC", "SP 252 C", dump_ricoh_sp_c252_407717_cyan, sizeof(dump_ricoh_sp_c252_407717_cyan),0 },
+  { "RICOH 6K", "GVDC", "SP 252 M", dump_ricoh_sp_c252_407718_magenta, sizeof(dump_ricoh_sp_c252_407718_magenta), 0 },
+  { "RICOH 6K", "GVDC", "SP 252 Y", dump_ricoh_sp_c252_407719_yellow, sizeof(dump_ricoh_sp_c252_407719_yellow), 0 },
+  { "RICOH 2.6K", "GVCD", "SP 277", dump_ricoh_sp_277_408160, sizeof(dump_ricoh_sp_277_408160), 0 },
+  { "RICOH 1.5K", "GVDC", "SP 300", dump_ricoh_sp_300_406956, sizeof(dump_ricoh_sp_300_406956), 0 },
+  { "RICOH 6K", "GVDC", "SP 310 B", dump_ricoh_sp_310_406479_black, sizeof(dump_ricoh_sp_310_406479_black), 0 },
+  { "RICOH 6K", "GVDC", "SP 310 Y", dump_ricoh_sp_310_406482_yellow, sizeof(dump_ricoh_sp_310_406482_yellow), 0 },
+  { "RICOH 6K", "GVDC", "SP 310 M", dump_ricoh_sp_310_122728_magenta, sizeof(dump_ricoh_sp_310_122728_magenta), 0 },
+  { "RICOH 6K", "GVDC", "SP 310 C", dump_ricoh_sp_310_122700_cyan, sizeof(dump_ricoh_sp_310_122700_cyan), 0 },
+  { "RICOH 3.5K", "GVCD", "SP 311/325", dump_ricoh_sp_311_407246, sizeof(dump_ricoh_sp_311_407246), 0 },
+  { "RICOH 6.4K", "GVCD", "SP 311/325", dump_ricoh_sp_311_821242, sizeof(dump_ricoh_sp_311_821242), 0 },
+  { "RICOH 7K", "GVCD", "SP 330", dump_ricoh_sp_330_408283, sizeof(dump_ricoh_sp_330_408283), 0 },
+  { "RICOH 5K", "GVCD", "SP 400/450", dump_ricoh_sp_400_450, sizeof(dump_ricoh_sp_400_450), 0 },
+  { "RICOH 5K", "GVDC", "3400/10 3500/10", dump_ricoh_sp_3400he_406522, sizeof(dump_ricoh_sp_3400he_406522), 0 },
+  { "RICOH 6.4K", "GVDC", "ONLY 3500/10", dump_ricoh_sp_3500xe_406990, sizeof(dump_ricoh_sp_3500xe_406990), 0 },
+  { "RICOH 12K", "GVCD", "SP 3600/10 4510", dump_ricoh_sp_4500he_407318, sizeof(dump_ricoh_sp_4500he_407318), 3 },      // 3 функция с 23 начало
+  { "SAMSUNG 3K", "VDCG", "SCX 4200/20", dump_samsung_scx_d4200a, sizeof(dump_samsung_scx_d4200a), 1 },                 // 1 функция с 63 начало
+  { "XEROX 2K", "VDCG", "PE 220", dump_xerox_013R00621, sizeof(dump_xerox_013R00621), 1 },                              // 1 функция с 63 начало
+  { "XEROX 3K", "VDCG", "WC 3119", dump_xerox_013R00625, sizeof(dump_xerox_013R00625), 1 },                             // 1 функция с 63 начало
+  { "XEROX 8K", "GCDV", "WC 4118", dump_xerox_006R01278, sizeof(dump_xerox_006R01278), 2 },                             // 2 функция с 63 начало и 191
+  { "RICOH 5K", "GVDC", "SP 360 Y", dump_ricoh_sp_360_408179_yellow, sizeof(dump_ricoh_sp_360_408179_yellow), 0 },
+  { "RICOH 5K", "GVDC", "SP 360 M", dump_ricoh_sp_360_408178_magenta, sizeof(dump_ricoh_sp_360_408178_magenta), 0 },
+  { "RICOH 5K", "GVDC", "SP 360 C", dump_ricoh_sp_360_408177_cyan, sizeof(dump_ricoh_sp_360_408177_cyan), 0 }           // Последняя строка без запятой !!!
+  */
