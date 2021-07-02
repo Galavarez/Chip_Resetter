@@ -1,5 +1,16 @@
-/* 
+/*  
 Auto Resetter wthiout sd card by Galavarez
+* Версия 02.07.2021
+Очередное глобальное обновление:
+- Убрал стандартную библиотеку Wire, поставил в место нее альтернативную(I2C-master). Теперь при сканирование шины с плохим контактом обнулятор
+ больше не будет зависать, а сообщит о плохом контакте или отсутствия чипа (если его нет)
+- Объединил 2 библиотеки (Eeprom24C01_02 и Eeprom24C04_08_16) в одну универсальную Eeprom24C01_16
+- Переписал логику работы кнопок и защиты от дребезга контактов. Теперь кнопки распознают 2 состояния (короткое и долгое нажатие)
+- Написал подпрограмму для калибровки кнопок для Вашего универсального lcd keypad shield. В описании на гитхабе
+ распишу что, да как работает
+- Переписал функцию по проверке чипа после его прошивки
+- Добавил дамп SP 360 black
+
 * Версия 17.06.2021
 - Переписал код базы данных, теперь добавлять новые чипы станет легче. Надеюсь многие поймут что да как =)
 - Добавил генератор серийного номера для Ricoh sp4500he 407318
@@ -631,6 +642,22 @@ const PROGMEM byte dump_ricoh_sp_360_408179_yellow[128] = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
+// Ricoh SP360 black (408184)
+const PROGMEM char NOTE_SP_360_B[] = { "SP 360 B" };
+const PROGMEM byte DUMP_SP_360_BLACK[128] = {
+  0x2F, 0x00, 0x01, 0x02, 0x41, 0x01, 0x01, 0x00, 0x64, 0x00, 0x34, 0x30,
+  0x38, 0x31, 0x37, 0x36, 0x17, 0x01, 0x54, 0x4A, 0x07, 0x00, 0x24, 0x53,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x64, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
 // Ricoh SP377 6.4K (408162) => Aficio SP 377DNwX/377SFNwX 
 const PROGMEM char NOTE_SP_377[] = { "SP 377" };
 const PROGMEM byte DUMP_SP_377[128] = {
@@ -726,39 +753,29 @@ const PROGMEM byte dump_xerox_013R00625[512] = {
 
 // 24С04_16 // Xerox 013R00621 2K for XEROX PE 220
 const PROGMEM char NOTE_PE_220[] = { "PE 220" };
-const PROGMEM byte dump_xerox_013R00621[512] = {
-  0xA8, 0xCF, 0x58, 0x45, 0x52, 0x4F, 0x58, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x32, 0x30, 0x30, 0x36, 0x30, 0x34, 0x00, 0x00,
-  0x43, 0x52, 0x55, 0x4D, 0x2D, 0x30, 0x36, 0x30, 0x34, 0x30, 0x36, 0x33, 0x33, 0x35, 0x38, 0x35, 
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xA8, 0xCF, 0x58, 0x45, 0x52, 0x4F, 0x58, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
+const PROGMEM byte dump_xerox_013R00621[256] = {
+ 0x20, 0x58, 0x45, 0x52, 0x4F, 0x58, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x32, 0x30, 0x31, 0x30, 0x30, 0x32, 0x00, 0x00,
+  0x43, 0x52, 0x55, 0x4D, 0x2D, 0x31, 0x30, 0x30, 0x32, 0x30, 0x36, 0x39,
+  0x38, 0x31, 0x36, 0x37, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x20, 0x58, 0x45, 0x52, 0x4F, 0x58, 0x20, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0xCC, 0xDD, 0x00, 0x22, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF
 };
 
 // 24С04_16 // Xerox 006R01278 8K for Xerox WC 4118 
@@ -800,12 +817,14 @@ const PROGMEM byte dump_xerox_006R01278[512] = {
 
 
 /** НАЧАЛО **/
+#include <I2C.h>
 
 // Подключаем библиотеку которая позволяет управлять микросхемами 24CXX подключать их на ПИН A4 (SDA), A5 (SCL)
-#include <Eeprom24C01_02.h> // Библиотека работает с 24C01 24C02
-#include <Eeprom24C04_16.h> // Библиотека работает с 24C04 24C08 24C16
+#include <Eeprom24C01_16.h> // Библиотека работает с 24C01 24C02 24C04 24C08 24C16
+
 // Подключаем библиотеку которая позволяет взаимодействовать с различными устройствами по интерфейсу I2C / TWI.
-#include <Wire.h> 
+#include <I2C.h>
+
 // Подключаем библиотеку которая позволяет управлять различными жидкокристаллическими дисплеями (LCD)
 #include <LiquidCrystal.h>  
 // Подключаем библиотеку для записи статических строк во FLASH а не в RAM 
@@ -821,8 +840,9 @@ LiquidCrystal lcd( 8, 9, 4, 5, 6, 7 );
 // Пин для работы генератора случайных чисел
 #define RANDOM_PIN A3
 
+
 // Адрес чипа (адрес динамический, меняется от чипа к чипу)
-byte address_eeprom;
+byte global_address_eeprom;
 
 // Номер чипа по умолчанию
 byte global_id = 0;
@@ -834,10 +854,10 @@ int global_all_chip_in_database;
 const byte* global_name_dump;
 
 // Размер чипа
-int global_size_dump;
+int global_size_dump = 0;
 
 // Номер функции которая помняет серийник 0 -- замена не нужна
-int global_change_crum;
+int global_change_crum = 0;
 
 // Состояние кнопки (защита от повторного срабатывания)
 boolean global_button_press = false; // true - кнопка нажата
@@ -845,18 +865,20 @@ boolean global_button_press = false; // true - кнопка нажата
 // Время отсчета для кнопки SELECT
 unsigned long time_passed = 0; 
 
-// Запоминаем количество нажатий на кнопку
+// Запоминаем количество нажатий на кнопку на кнопку select
 int global_button_select = 0; 
 
 // Значение кнопок для разных версий LCD Keypad shield. 
 // Настроить под себя если клавиатура плохо работает.
 // Указать значение БОЛЬШЕ чем у вас выдает кнопка
                               // LCD Keypad shield v 1        // LCD Keypad shield v 1.1  (тестировал на 2х Keypad shield)   
-int BUTTON_UP = 110;          // Пример у меня значение 132   // 96 или 100
-int BUTTON_DOWN = 270;        // Пример у меня значение 334   // 251 или 255
+int BUTTON_UP = 95;          // Пример у меня значение 132   // 96 или 100
+int BUTTON_DOWN = 250;        // Пример у меня значение 334   // 251 или 255
 int BUTTON_RIGHT = 5;        // Пример у меня значение 3     // 0 или 0
-int BUTTON_LEFT = 410;        // Пример у меня значение 482   // 404 или 407
-int BUTTON_SELECT = 650;      // Пример у меня значение 720   // 637 или 638
+int BUTTON_LEFT = 405;        // Пример у меня значение 482   // 404 или 407
+int BUTTON_SELECT = 640;      // Пример у меня значение 720   // 637 или 638
+// Кнопка была нажата или нет
+boolean BUTTON_BUSY = false;
 
 
 // ** DEFINE ** //
@@ -884,6 +906,7 @@ const PROGMEM char PAGE_8_K[] = { "8K" };
 const PROGMEM char PAGE_12_K[] = { "12K" };
 // => CHIP_MEMORY
 const PROGMEM int CHIP_MEMORY_128 = 128;
+const PROGMEM int CHIP_MEMORY_256 = 256;
 const PROGMEM int CHIP_MEMORY_512 = 512;
 
 /** Создаем структуру базы данных (проще говоря многомерный массив с разными данными) **/
@@ -940,11 +963,16 @@ Struct_DB datebase[] = {
   { BRAND_XEROX,    PAGE_8_K,   PINOUT_GCDV, NOTE_WC_4118, dump_xerox_006R01278, CHIP_MEMORY_512 , 2 },                             // 2 функция с 63 начало и 191
   { BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_Y, dump_ricoh_sp_360_408179_yellow, CHIP_MEMORY_128 , 0 },
   { BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_M, dump_ricoh_sp_360_408178_magenta, CHIP_MEMORY_128 , 0 },
-  { BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_C, dump_ricoh_sp_360_408177_cyan, CHIP_MEMORY_128 , 0 }           // Последняя строка без запятой !!!
- 
+  { BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_C, dump_ricoh_sp_360_408177_cyan, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_B, DUMP_SP_360_BLACK, CHIP_MEMORY_128 , 0 }           
+
+
+
+  // Последняя строка без запятой !!!
   // { "", "", "", , sizeof(), 0 }, // шаблон 
 };
 
+// Вывод на LCD информацию по чипу и установка глобальных переменных
 void set_global_variables(int row)
 {
   // Показываем на LCD brand, page, pinout, note
@@ -966,14 +994,45 @@ void set_global_variables(int row)
 
 /****************************** SETUP ******************************/
 
-
 void setup() 
 {   
+  
+  /*
+  // объявляем структуру кнопок
+  struct StructButton {
+    int BUTTON_UP = 110;
+    int BUTTON_DOWN = 250;
+    int BUTTON_LEFT = 410;
+    int BUTTON_RIGHT = 5;
+    int BUTTON_SELECT = 640;
+  };
+
+  // Записываем по адресу 0 стандыртные значения, указав размер структуры и приведя к void*
+  eeprom_write_block((void*)&StructButton, 0, sizeof(StructButton));
+
+  if (global_calibration_button == false)
+  { 
+     // создаём новую пустую структуру
+     StructButton NewStructButton;
+     // читаем из адреса 0
+     eeprom_read_block((void*)&newStruct, 0, sizeof(newStruct));      
+  }
+
+  */
+ 
+
+
   lcd.begin(16, 2);  // Инициализируем LCD 16x2
   Serial.begin(9600); //инициализируем последовательное соединение для работы с ПК
   while (!Serial) { ; } // Ждем когда подключится ардуино к пк по usb
-  Wire.begin(); //инициализируем библиотеку I2C / TWI для работы с I2C устройствами
- 
+
+  //Wire.begin(); //инициализируем библиотеку I2C / TWI для работы с I2C устройствами
+  
+  //инициализируем библиотеку I2C / TWI для работы с I2C устройствами
+  I2c.begin();
+  I2c.timeOut(5);
+  I2c.pullup(true);
+
   // Пин А2 для питания чипа устанавливаем в положение OUTPUT
   // Пин A0-14 A1-15 A2-16 A3-17 A4-18 A5-19
   pinMode(POWER_PIN, OUTPUT);
@@ -988,31 +1047,21 @@ void setup()
   
   // Устанавливаем глобальные переменные и показываем первый чип на экране
   set_global_variables(global_id);
-
-  
 }
 
 
 /****************************** LOOP ******************************/
 
-
 void loop() 
 {  
   /* ОБРАБОТКА НАЖАТИЯ КНОПОК */
 
-  // Задаем номер порта с которого производим считывание
-  int analog_number = analogRead(0); 
-  //Serial.println(analog_number);
-
-  
-  if (analog_number < BUTTON_RIGHT && global_button_press == false) // Если это кнопка Right и другие кнопки не нажаты то
-  {     
-    // Значение кнопки
-    print_sensor_value("RIGHT");
-    
-    if (analog_debonce(BUTTON_RIGHT) == true) // делаем проверку от дребезга кнопок
-    {
-        
+  switch ( button(BUTTON_RIGHT) )
+  {
+    case 0:
+      break;
+    case 1: 
+      //Serial.println(F("BUTTON_RIGHT SHORT")); 
       if (global_id != global_all_chip_in_database)
       {
         // Увеличиваем счетчик и показываем на экране следующий чип
@@ -1025,70 +1074,18 @@ void loop()
         global_id = 0;
         set_global_variables(global_id);
       }
-      
-    }
+      break;
+    case 2:
+      //Serial.println(F("BUTTON_RIGHT LONG")); 
+      break;
   }
-  else if (analog_number < BUTTON_UP && global_button_press == false) // Если это кнопка UP и другие кнопки не нажаты то
-  {
-    // Значение кнопки
-    print_sensor_value("UP");
-    
-    if (analog_debonce(BUTTON_UP) == true) // делаем проверку от дребезга кнопок
-    {
-      // Serial.println(F("CLICK BUTTON UP")); // UPLOAD -- закачиваем дамп
-      // Подаем питание и сканируем шину i2c на наличие чипа
-      power_on_for_chip();
-      
-      // Скоростная прошивка чипа
-      // если дамп чипа меньше либо равна 256 байт то это микросхема 24c01_02 иначе это 24c04_16
-      if(global_size_dump <= 256)
-      {
-        firmware_24c01_02();
-      }
-      else
-      {
-        firmware_24c04_16();
-      }
-      
-      // Выключаем питание
-      power_off_for_chip();
 
-      // Возврат в меню
-      set_global_variables(global_id);
-
-    }
-  }
-  else if (analog_number < BUTTON_DOWN && global_button_press == false) // Если это кнопка Down и другие кнопки не нажаты то
+  switch ( button(BUTTON_LEFT) )
   {
-    // Значение кнопки
-    print_sensor_value("DOWN");
-    
-    if (analog_debonce(BUTTON_DOWN) == true) // делаем проверку от дребезга кнопок
-    {
-      // Подаем питание и сканируем шину i2c на наличие чипа
-      power_on_for_chip();
-      
-      // Считываем чип и показываем его на lcd
-      read_chip_and_display_it();  
-      
-      // Чтение дампа и вывод его в порт монитора
-      // extract_dump();    
-      
-      // Выключаем питание
-      power_off_for_chip();
-
-      // Возврат в меню
-      set_global_variables(global_id);
-    }
-  }
-  else if (analog_number < BUTTON_LEFT && global_button_press == false) // Если это кнопка Left и другие кнопки не нажаты то
-  {
-    // Значение кнопки
-    print_sensor_value("LEFT");
-    
-    if (analog_debonce(BUTTON_LEFT) == true) // делаем проверку от дребезга кнопок
-    {
-        
+    case 0:
+      break;
+    case 1: 
+      //Serial.println(F("BUTTON_LEFT SHORT")); 
       if (global_id != 0)
       {
         // Уменьшаем счетчик и показываем предыдущий чип
@@ -1101,100 +1098,246 @@ void loop()
         global_id = global_all_chip_in_database; 
         set_global_variables(global_id);
       }
-    }
+      break;
+    case 2:
+      //Serial.println(F("BUTTON_LEFT LONG")); 
+      break;
   }
-  else if (analog_number < BUTTON_SELECT && global_button_press == false) // Если это кнопка Select и другие кнопки не нажаты то
-  {    
-    // Значение кнопки
-    print_sensor_value("SELECT");    
-    
-    if (analog_debonce(BUTTON_SELECT) == true)  // делаем проверку от дребезга кнопок
-    {
-        // Если time_passed раверн 0 значит нажали внопку в первый раз
-        if ( time_passed == 0) 
-        { 
-          time_passed = millis(); // Запоминаем время нажатие кнопки 
-        }
-        else if ( (millis() - time_passed) < 3000 ) // Если нажание на кнопку было МЕНЬШЕ 3х секунд назад т.е. листаем меню
-        {
-          global_button_select++; // Увеличиваем счетчик меню
-        }
 
-        // Если повторное нажатие кнопки SELECT было БОЛЬШЕ 3х секунд назад, выполняем запуск выбранной функции
-        if ( millis() - time_passed > 3000) 
-        {
-           // Выполнаем функции
-           switch(global_button_select)
-           {
-            case 0:
-              total_pages_on_display_ricoh(); // Показываем на дисплей количество страниц из чипа (только для Ricoh)
-              break;
-            case 1:
-              firmware_chip_with_timer(5); // В скобках сколько секунд ждать перед пршивкой   
-              break;
-            case 2:
-              extract_dump(128);  // Показываем в мониторе порта дамп с чипа первые 128 байт      
-              break;
-            case 3:
-              extract_dump(256);  // Показываем в мониторе порта дамп с чипа первые 256 байт       
-              break; 
-            case 4:
-              extract_dump(512);   // Показываем в мониторе порта дамп с чипа первые 512 байт         
-              break;  
-           }
-           // Обнуляем переменные времени и количество нажатий на кнопку
-           time_passed = 0;
-           global_button_select = 0;
-        }
-        else // Иначе листаем меню
-        {
-          restart_switch: // точка возварат switch по default
-          
-          switch(global_button_select)
-          {
-            case 0:
-              lcd.clear();
-              lcd.print(F("NUMBER PRINTED")); 
-              lcd.setCursor(0,1);
-              lcd.print(F("PAGES ON PRINTER"));               
-              break;
-            case 1:
-              lcd.clear();
-              lcd.print(F("FIRMWARE CHIP"));
-              lcd.setCursor(0,1);
-              lcd.print(F("WITH TIMER"));
-              break;
-            case 2:
-              lcd.clear();
-              lcd.print(F("READ DUMP ON PC"));
-              lcd.setCursor(0,1);
-              lcd.print(F("128 BYTES"));             
-              break;
-            case 3:
-              lcd.clear();
-              lcd.print(F("READ DUMP ON PC"));
-              lcd.setCursor(0,1);
-              lcd.print(F("256 BYTES"));
-              break;
-            case 4:
-              lcd.clear();
-              lcd.print(F("READ DUMP ON PC"));
-              lcd.setCursor(0,1);
-              lcd.print(F("512 BYTES"));
-              break;
-            default:
-              // Обнуление перемен и возварт в начало меню
-              global_button_select = 0;
-              goto restart_switch;
-          }
-          time_passed = millis(); // Запоминаем время когда нажали кнопку
-        } 
-    }   
+  switch ( button(BUTTON_UP) )
+  {
+    case 0:
+      break;
+    case 1: 
+      //Serial.println(F("BUTTON_UP SHORT")); 
+      // Подаем питание на чип
+      power_on_for_chip();
+      
+      //сканируем шину i2c на наличие чипа, если все хорошо
+      if (search_address_chip_3()) 
+      {
+        // Скоростная прошивка чипа  
+        firmware();             
+      }
+            
+      // Выключаем питание
+      power_off_for_chip();
+
+      // Возврат в меню
+      set_global_variables(global_id);
+      break;
+    case 2:
+      //Serial.println(F("BUTTON_UP LONG")); 
+      break;
+  }
+
+  switch ( button(BUTTON_DOWN) )
+  {
+    case 0:
+      break;
+    case 1: 
+      //Serial.println(F("BUTTON_DOWN SHORT")); 
+      // Подаем питание на чип
+      power_on_for_chip();
+
+      //сканируем шину i2c на наличие чипа
+      if (search_address_chip_3()) 
+      { 
+        // Считываем чип и показываем его на lcd
+        read_chip_and_display_it();  
+        
+        // Чтение дампа и вывод его в порт монитора
+        //extract_dump(global_size_dump);    
+       }
+      
+      // Выключаем питание
+      power_off_for_chip();
+
+      // Возврат в меню
+      set_global_variables(global_id);
+      break;
+    case 2:
+      //Serial.println(F("BUTTON_DOWN LONG")); 
+      break;
+  }
+
+  switch ( button(BUTTON_SELECT) )
+  {
+    case 0:
+      break;
+    case 1: 
+      //Serial.println(F("BUTTON_SELECT SHORT"));
+
+      // Увеличиваем счетчик или сбрасываем на 1 
+      global_button_select = global_button_select + 1;
+      
+      // Если закончились программы то сбрасываем на 1
+      if ( global_button_select > 6 ) // 6 это кол-во подпрограмм
+      {
+        global_button_select = 1;
+      }
+
+      // Показываем подпрограмму
+      switch(global_button_select)
+      {
+        case 0:
+            break;
+        case 1:
+          lcd.clear();
+          lcd.print(F("Sizing button"));
+          lcd.setCursor(0,1);
+          lcd.print(F("Exit only RESET"));               
+          break;
+        case 2:
+          lcd.clear();
+          lcd.print(F("See total pages")); 
+          lcd.setCursor(0,1);
+          lcd.print(F("Only SP 111/150"));               
+          break;
+        case 3:
+          lcd.clear();
+          lcd.print(F("Firmware chip"));
+          lcd.setCursor(0,1);
+          lcd.print(F("With timer"));
+          break;
+        case 4:
+          lcd.clear();
+          lcd.print(F("Read dump no PC"));
+          lcd.setCursor(0,1);
+          lcd.print(F("128 bytes"));             
+          break;
+        case 5:
+          lcd.clear();
+          lcd.print(F("Read dump no PC"));
+          lcd.setCursor(0,1);
+          lcd.print(F("256 bytes"));
+          break;
+        case 6:
+          lcd.clear();
+          lcd.print(F("Read dump no PC"));
+          lcd.setCursor(0,1);
+          lcd.print(F("512 bytes"));
+          break;
+
+      }
+      
+      break;
+    case 2:
+      //Serial.println(F("BUTTON_SELECT LONG")); 
+      // Долгое зажатие приводит к выполнению подпрограммы
+     switch(global_button_select)
+     {
+      case 0:
+        break;
+      case 1:
+        calibration_button(); // Калибровка кнопок
+      case 2:
+        total_pages_on_display_ricoh(); // Показываем на дисплей количество страниц из чипа (только для Ricoh)
+        break;
+      case 3:
+        firmware_chip_with_timer(5); // В скобках сколько секунд ждать перед пршивкой   
+        break;
+      case 4:
+        extract_dump(128);  // Показываем в мониторе порта дамп с чипа первые 128 байт      
+        break;
+      case 5:
+        extract_dump(256);  // Показываем в мониторе порта дамп с чипа первые 256 байт       
+        break; 
+      case 6:
+        extract_dump(512);   // Показываем в мониторе порта дамп с чипа первые 512 байт         
+        break;  
+      } 
+      // Сбрасываем меню SELECT
+      global_button_select = 0;
+      break;
   }
   
-  // Обнуляем переменную globalBntPress если все кнопки отпущены
-  if ( analogRead(0) > 1000){ global_button_press = false;}
-   
+}
+
+
+/****************************** КАЛИБРОВКА КНОПО LCD KEYPAD SHIELD ******************************/
+void calibration_button()
+{
+  // долгое нажатие сохраняет 
+  while(true)
+  {
+    lcd.clear();
+    lcd.print("VALUES BUTTON");
+    lcd.setCursor(0,1);
+    lcd.print(analogRead(0));
+    delay(1000);
+  }
+  
+}
+/****************************** ЗАЩИТА ОТ ДРЕБЕЗГА КНОПОК И ПРОВЕКА СОСТОЯНИЯ КНОПКИ ******************************/
+// Возвращаем true - кнопка нажата   false - не нажата
+
+bool button_on_off(int RESISTOR_BUTTON)
+{
+  // Параметры резистора с допусками +-20
+  int RESISTOR_BUTTON_MIN = RESISTOR_BUTTON - 20;
+  int RESISTOR_BUTTON_MAX = RESISTOR_BUTTON + 20; 
+
+   // Сопротивление кнопки которую нажали
+  int RESISTOR_NOW = analogRead(0); 
+  if ( RESISTOR_NOW > RESISTOR_BUTTON_MIN && RESISTOR_NOW < RESISTOR_BUTTON_MAX ) 
+  {
+    // Защита от дребезга кнопки
+    delay(50);
+    RESISTOR_NOW = analogRead(0); 
+    if ( RESISTOR_NOW > RESISTOR_BUTTON_MIN && RESISTOR_NOW < RESISTOR_BUTTON_MAX ) 
+    {
+      // Кнопка нажата
+      return true;
+    }
+    else
+    {
+      // Был дребезг кнопки
+      return false; 
+    }
+  }
+  else
+  {
+    // Кнопка отпущена
+    return false;
+  }
+}
+
+/****************************** ПРОВЕРКА НА КОРОТКОЕ ИЛИ ДОЛГОЕ НАЖАТИЕ НА КНОПКУ ******************************/
+// Возвращаем 1 - SHORT click   2 - LONG click
+int button(int RESISTOR_BUTTON)
+{  
+
+  if ( button_on_off(RESISTOR_BUTTON) == true ) 
+  { 
+    // Запускаем таймер
+    unsigned long time_push_button = millis();
+    // Время срабатывание Long click
+    int time_delay = 2000;
+
+    while ( (millis() - time_push_button) < time_delay )
+    {
+      // Если кнопку отпустили и до этого не нажимали 
+      if( button_on_off(RESISTOR_BUTTON) == false &&  BUTTON_BUSY == false)
+      {
+        //Serial.println("RETURN 1");  
+        return 1;
+      }
+      // Если кнопку отпустили и до этого нажимали
+      else if( button_on_off(RESISTOR_BUTTON) == false &&  BUTTON_BUSY == true )
+      { 
+        //Serial.println("RETURN 0"); 
+        BUTTON_BUSY = false; 
+        return 0;
+      }
+    } 
+    // Если кнопку не отпускали больше времени в переменной time_delay, значит это Long click
+    //Serial.println("RETURN 2");
+    BUTTON_BUSY = true;
+    return 2;
+  }
+  else { return 0; }
+
 }
 
 /****************************** ПРОВЕРКА ЗНАЧЕНИЙ КНОПОК ******************************/
@@ -1208,30 +1351,12 @@ void print_sensor_value(String name_button)
 }
 
 
-/****************************** ЗАЩИТА ОТ ДРЕБЕЗГА КНОПОК И ПОВТОРНЫХ НАЖАТИЙ ******************************/
-
-boolean analog_debonce(int max_value)
-{
-
-  delay(50); // Пауза перед повторным считыванием кнопки
-  if ( analogRead(0) < max_value) // Если все еще держим кнопку а не случайный дребезг то
-  {
-    global_button_press = true; // Запоминаем что нажали кнопку
-    return true; // Проверка на дребегз пройдена
-  }
-  else
-  {
-    return false; // Проверка на дребегз НЕ пройдена
-  }
-}
-
 /****************************** ВКЛЮЧАЕМ ПИТАНИЯ ЧИПА ******************************/
 
 void power_on_for_chip()
 {
   digitalWrite(POWER_PIN, HIGH); // Подаем питания на A2 для запитки чипа
   delay(500); // Задержка для поднятия напряжения
-  search_address_chip_2(); // Сканируем шину I2C на наличия чипа и сохраняем адрес его в памяти
 }
 
 /****************************** ВЫКЛЮЧАЕМ ПИТАНИЯ ЧИПА ******************************/
@@ -1240,210 +1365,178 @@ void power_off_for_chip()
   digitalWrite(POWER_PIN, LOW); // Выключаем питания на A2 пине
 }
 
-/****************************** ПОИСК ЧИПА НА ШИНЕ I2C ******************************/
-void search_address_chip()
+/****************************** ПОИСК ЧИПА НА ШИНЕ I2C ВЕРСИЯ 3 ******************************/
+// Возваращаем 1 если все ок и 0 если все плохо
+bool search_address_chip_3() 
 {
-  byte error, address;
-  for(address = 1; address < 127; address++)
-  {        
-    Wire.beginTransmission(address);
-    error = Wire.endTransmission();
-    if (error == 0) // Ошибок нет, устройство найдено
-    {     
-      Eeprom24C04_16 eeprom(address); // Берем адреес шины и пытаемся считать данные с чипа
-      eeprom.initialize();
-      if (eeprom.readByte(0) != 0xFF) // Считываем нулевой байт, если он 0xFF то ищим следующий адрес 
-      {
-        address_eeprom = address; // Сохраняем адрес чипа в памяти
-        //Serial.print(F("Address chip = 0x"));
-        //Serial.println(address,HEX);  // Показываем адрес на котором сидит чип
-        break;
-      }     
-    }
-    else if (error==4) //Есть ошибки
+    byte error;
+    byte count_device = 0;
+
+    // Сканируем шину I2C
+    for (byte address = 0; address < 127; address++)
     {
-      Serial.println(F("error == 4"));
-      Serial.println(address,HEX);
+       // Переменная для ошибок 0 по умолчанию
+       error = 0; 
+       // I2c._start() возвращает 0 если все хорошо, 1 если првышено время ожидания шины, 2 и более другие ошибки
+       error = I2c._start();
+       // ... 
+       if ( error == 0 ) 
+        {           
+          // I2c._sendAddress возвращает 0 если все хорошо, 1 если првышено время ожидания шины, 2 и более другие ошибки.
+          // В конце адреса надо указывать бит чтения << 1 или записи << 0
+          error = I2c._sendAddress(address << 1);
+          //Serial.print("Adress 0x"); Serial.println(address);
+          // Если ошибок нет и нашли адрес то ...
+          if ( error == 0)
+          {
+              // Берем адреес шины и пытаемся считать данные с чипа по умолчанию
+              Eeprom24C01_16 eeprom(address);
+              // Инициализируем библиотеку eeprom
+              eeprom.initialize();
+              
+              // Ищем первый адрес с подходящими параметрами, их может быть больше 1 нам нужен лишь 1  
+              if (eeprom.readByte_24C04_16(0) != 0 && count_device == 0) 
+              {        
+                global_address_eeprom = address; // Сохраняем адрес чипа в памяти
+                //Serial.print(F("Address chip = 0x")); Serial.println(address,HEX);  // Показываем адрес на котором сидит чип
+                // Считаем сколько нашли чипов
+                count_device = count_device + 1;
+              }         
+           }
+         }
+        
+       // Отпускаем шину с адресом, I2c._stop() возвращает 0 если все хорошо, 1 если првышено время ожидания шины, 2 и более другие ошибки
+       I2c._stop();
     }
-  }   
+    
+
+    // Сообщаем либо плохой контакт или чипа нет либо все хорошо
+    if(count_device == 0)
+    {
+      lcd.clear(); 
+      lcd.print(F("BAD CONTACT OR"));  
+      lcd.setCursor(0,1); 
+      lcd.print(F("NOT CHIP"));
+      Serial.print(F("BAD CONTACT OR NOT CHIP")); 
+      delay (2000);
+      return false; 
+    }
+    else
+    {         
+      return true;  
+    }
 }
 
-/****************************** ПОИСК ЧИПА НА ШИНЕ I2C ВЕРСИЯ 2 ******************************/
-void search_address_chip_2()
-{
-  // По умолчанию считается что контакта с чипом нет (если все хорошо то этого сообщения не увидите)
-  lcd.clear(); lcd.print(F("CONTACT CHIP"));  lcd.setCursor(0,1); lcd.print(F("BAD"));
-     
-  byte error, address;
-  for(address = 1; address < 127; address++)
-  {        
-    Wire.beginTransmission(address);
-    error = Wire.endTransmission();
-    if (error == 0) // Ошибок нет, устройство найдено
-    {     
-      Eeprom24C04_16 eeprom(address); // Берем адреес шины и пытаемся считать данные с чипа
-      eeprom.initialize();
-      if (eeprom.readByte(0) != 0xFF) // Считываем нулевой байт, если он 0xFF то ищим следующий адрес 
-      {
-        address_eeprom = address; // Сохраняем адрес чипа в памяти
-        //Serial.print(F("Address chip = 0x"));
-        //Serial.println(address,HEX);  // Показываем адрес на котором сидит чип
-        
-        //Serial.println("Contact GOOD");
-        lcd.setCursor(0,1); lcd.print(F("GOOD")); // Контакт есть
-                
-        break;
-      }     
-    }
-    else if (error==4) //Есть ошибки
-    {
-      Serial.println(F("error == 4"));
-      Serial.println(address,HEX);
-    }
-  }   
-}
- 
-/****************************** МЕДЛЕННАЯ ПРОШИВКА ЧИПА ******************************/
+/****************************** СКОРОСТНАЯ ПРОШИВКА ЧИПОВ УНИВЕРСАЛЬНАЯ БИБЛИОТЕКА ******************************/
 void firmware()
 {
   lcd.clear();
-  lcd.print(F("FIRMWARE CHIP"));
+  lcd.print(F("FIRMWARE CHIP")); 
   lcd.setCursor(0, 1);      
   lcd.blink(); // влючаем мигание курсора для информативности
-  Serial.println(F("FIRMWARE START"));
+ 
+  // Подключаем библиотеку и задем адрес и размер чипа
+  Eeprom24C01_16 eeprom(global_address_eeprom); 
+  eeprom.initialize(); 
+  
+  word address = 0; // Адрес начало дампа
+  int count = global_size_dump; // байт в чипе
+  
+  
+  byte array_bytes[count];  // Создаем массив с нужным размером 
+  for (int i = 0; i < count; i++) 
+  {    
+    array_bytes[i] = pgm_read_byte(&global_name_dump[i]); // Заполняем массив
+    //Serial.println(pgm_read_byte(&global_name_dump[i]), HEX);
+  }
 
-  Eeprom24C04_16 eeprom(address_eeprom); 
-  eeprom.initialize();
-   
-  for(int i = 0; i < global_size_dump; i++) // Циклы
+  // Записываем в чип
+  // Если в чипе до 256 байт то writeBytes_24C01_02 иначе writeBytes_24C04_16
+  if (global_size_dump <= 256)
   {
-    eeprom.writeByte(i, pgm_read_byte(&global_name_dump[i]));  
-    delay(10); 
-
-    //Serial.print(pgm_read_byte(&name_dump[i]), HEX);
-    //Serial.print(F(" = "));
-    //Serial.println(eeprom.readByte(i), HEX);
-    //Serial.print(F("number byte = "));
-    //Serial.print(i);
-    //Serial.print(F(" value byte = "));
-    //Serial.print(pgm_read_byte(&name_dump[i]), HEX);
-    //Serial.print(F(" eeprom read byte = "));
-    //Serial.println(eeprom.readByte(i), HEX);
+    eeprom.writeBytes_24C01_02(address, count, array_bytes); 
   }
-  Serial.println(F("FIRMWARE END"));
-  lcd.print(F("DONE !!!"));
-  lcd.noBlink(); // отключаем мигание курсора
-  
-  // Проверка чипа
-  verification_dump();
-}
-
-/****************************** СКОРОСТНАЯ ПРОШИВКА ЧИПОВ 24c01-02 до 256 байт в чипе ******************************/
-void firmware_24c01_02()
-{
-  lcd.clear();
-  lcd.print(F("FIRMWARE CHIP"));
-  lcd.setCursor(0, 1);      
-  lcd.blink(); // влючаем мигание курсора для информативности
-  Serial.println(F("FIRMWARE START"));
-
-  // Скоростная прошивка чипа
-  Eeprom24C01_02 eeprom(address_eeprom); eeprom.initialize(); 
-  
-  word address = 0; // Адрес начало дампа
-  int count = global_size_dump; // байт в чипе
-  
-  byte array_bytes[count];  // Создаем массив с нужным размером 
-  for (int i = 0; i < count; i++) 
-  {    
-    array_bytes[i] = pgm_read_byte(&global_name_dump[i]); // Заполняем массив
-    //Serial.println(pgm_read_byte(&global_name_dump[i]), HEX);
+  else
+  {
+    eeprom.writeBytes_24C04_16(address, count, array_bytes); 
   }
-  eeprom.writeBytes(address, count, array_bytes); // Записываем в чип
-  //Serial.println(address);
-  //Serial.println(count);
+  
+  
+  //Serial.println(address); Serial.println(count);
+  
+  
   
   lcd.print(F("DONE !!!"));
   lcd.noBlink(); // отключаем мигание курсора
 
+  Serial.println(F("FIRMWARE GOOD"));
+  
   // Проверка чипа
   verification_dump();
 
   //Смена серийного номера
-  change_crum_select();
+  change_crum_select(); 
+     
 }
-
-/****************************** СКОРОСТНАЯ ПРОШИВКА ЧИПОВ 24c04-16 более 512 байт в чипе ******************************/
-void firmware_24c04_16()
-{
-  lcd.clear();
-  lcd.print(F("FIRMWARE CHIP"));
-  lcd.setCursor(0, 1);      
-  lcd.blink(); // влючаем мигание курсора для информативности
-  Serial.println(F("FIRMWARE START"));
-
-  // Скоростная прошивка чипа
-  Eeprom24C04_16 eeprom(address_eeprom); 
-  eeprom.initialize();   
-
-  word address = 0; // Адрес начало дампа
-  int count = global_size_dump; // байт в чипе
-  
-  byte array_bytes[count];  // Создаем массив с нужным размером 
-  for (int i = 0; i < count; i++) 
-  {    
-    array_bytes[i] = pgm_read_byte(&global_name_dump[i]); // Заполняем массив
-    //Serial.println(pgm_read_byte(&global_name_dump[i]), HEX);
-  }
-  eeprom.writeBytes(address, count, array_bytes); // Записываем в чип
-  
-  lcd.print(F("DONE !!!"));
-  lcd.noBlink(); // отключаем мигание курсора
-
-  // Проверка чипа
-  verification_dump();
-
-  //Смена серийного номера
-  change_crum_select();
-}
+ 
 
 /************************************* ПРОВЕРКА ДАМПА ПОСЛЕ ПРОШИВКИ *************************************/
 void verification_dump()
 {
   lcd.clear();
-  lcd.print(F("VERIFICATION"));
+  lcd.print(F("VERIFICATION")); 
   lcd.setCursor(0,1);
-  
-  Eeprom24C04_16 eeprom(address_eeprom); 
-  eeprom.initialize();  
+  Serial.print(F("VERIFICATION "));
     
+  Eeprom24C01_16 eeprom(global_address_eeprom);
+  eeprom.initialize();  
+
+  //Serial.print("global_address_eeprom = ");
+  //Serial.println(global_address_eeprom, HEX);
+  
+  // Кол-во ошибок
+  byte error = 0;
   for(int i = 0; i < global_size_dump; i++) // Циклы
   {
-    if(pgm_read_byte(&global_name_dump[i]) != eeprom.readByte(i))
+    //Serial.print(global_size_dump);
+    if(pgm_read_byte(&global_name_dump[i]) != eeprom.readByte_24C04_16(i))
     {
-      lcd.print(F("ERROR"));
-      Serial.print(F("VERIFICATION ERROR"));
-      delay(1000);
-      break;      
+      error = error + 1;
+      /*
+      Serial.println(F("")); 
+      Serial.print(F("BYTE = "));
+      Serial.print(i);
+      Serial.print(F(" PROGMEM = "));
+      Serial.print(pgm_read_byte(&global_name_dump[i]), HEX);
+      Serial.print(F(" EEPROM = "));
+      Serial.println(eeprom.readByte(i), HEX); 
+      */   
     }
-    else
-    {
-      lcd.print(F("GOOD"));  
-      Serial.println(F("VERIFICATION GOOD")); 
-      delay(500);
-      break;
-    }
+    
     //Serial.print(F("number byte = "));
     //Serial.print(i);
-    //Serial.print(F(" value byte = "));
-    //Serial.print(pgm_read_byte(&name_dump[i]), HEX);
-    //Serial.print(F(" eeprom read byte = "));
+    //Serial.print(F(" PROGMEM = "));
+    //Serial.print(pgm_read_byte(&global_name_dump[i]), HEX);
+    //Serial.print(F(" EEPROM = "));
     //Serial.println(eeprom.readByte(i), HEX);
+  }
+
+  // Если ошибок нет то GOOD иначе ERROR
+  if ( error == 0 ) 
+  { 
+    lcd.print(F("GOOD")); 
+    Serial.println(F("GOOD")); 
+    delay(1000); 
+  } 
+  else 
+  { 
+    lcd.print(F("ERROR")); 
+    Serial.println(F("ERROR"));
+    delay(2000);
   }
 }
 
-
-/** ГЕНЕРАТОР СЕРИЙНОГО НОМЕРА ВЕРСИЯ 3 **/
+/*************************************  ГЕНЕРАТОР СЕРИЙНОГО НОМЕРА ВЕРСИЯ 3 *************************************/
 // Выбор какая функция смены серийного номера заработает
 void change_crum_select()
 {  
@@ -1471,47 +1564,48 @@ void change_crum_select()
 // ...
 void change_crum_one_samsung_xerox()
 {  
-  Eeprom24C04_16 eeprom(address_eeprom);
+  Eeprom24C01_16 eeprom(global_address_eeprom);
   eeprom.initialize(); 
    
   int temp_sn_one = 63; // Получаем номер байта серийника
   for (int i = 6; i > 0; i--) // меняем 6 младших разрядов серийника
   {   
    int randomNum = random(48, 57); // ANSI (48-58) а в DEC (0-9)
-   eeprom.writeByte(temp_sn_one, randomNum); // Записываем значение в адрес
+   eeprom.writeByte_24C04_16(temp_sn_one, randomNum); // Записываем значение в адрес
    delay(10); // пауза для записи в ячейку EEPROM 
    temp_sn_one--; // переход к старшему разряду
   }
-  Serial.println(F("CHANGE CRUM 1 END"));
   // Показываем серийный номер на lcd
   print_sn_on_lcd();
+
+  Serial.println(F("CHANGE ONE CRUM GOOD"));
 }
 
 // Генератора для Samsung или Xerox где надо сменить 2 номерa 
 // Младший разряд находится в 63 байте и в 191
 // ...
 void change_crum_two_xerox()
-{
-  Eeprom24C04_16 eeprom(address_eeprom);
+{  
+  Eeprom24C01_16 eeprom(global_address_eeprom);
   eeprom.initialize();
-
+  
   int temp_sn_one = 63;
   int temp_sn_two = 191;
-  for (int i = 5; i > 0; i--) // меняем 5 последних разрядов серийника
+  for (int i = 6; i > 0; i--) //  меняем 6 младших разрядов серийника
   {
     int randomNum = random(48, 57); // ANSI (48-58) а в DEC (0-9)
-    eeprom.writeByte(temp_sn_one, randomNum); // Записываем значение в адрес
+    eeprom.writeByte_24C04_16(temp_sn_one, randomNum); // Записываем значение в адрес
     delay(10); // пауза для записи в ячейку EEPROM
-    eeprom.writeByte(temp_sn_two, randomNum); // Записываем значение в адрес
+    eeprom.writeByte_24C04_16(temp_sn_two, randomNum); // Записываем значение в адрес
     delay(10); // пауза для записи в ячейку EEPROM
     temp_sn_one--; // переход к старшему разряду
     temp_sn_two--; // переход к старшему разряду
   }
   
-  Serial.println(F("CHANGE CRUM 1-2 END"));
-  
   // Показываем серийный номер на lcd
   print_sn_on_lcd();
+
+  Serial.println(F("CHANGE TWO CRUM GOOD"));
 }
 
 // Генератора для Ricoh где надо сменить 1 номер
@@ -1519,25 +1613,26 @@ void change_crum_two_xerox()
 // ...
 void change_crum_ricoh()
 {
-  Eeprom24C04_16 eeprom(address_eeprom);
+  Eeprom24C01_16 eeprom(global_address_eeprom);
   eeprom.initialize(); 
    
   int temp_sn_one = 23; // Получаем номер байта серийника
   for (int i = 2; i > 0; i--) // меняем 2 младших разрядов серийника
   {   
    int randomNum = random(48, 57); // ANSI (48-58) а в DEC (0-9)
-   eeprom.writeByte(temp_sn_one, randomNum); // Записываем значение в адрес
+   eeprom.writeByte_24C01_02(temp_sn_one, randomNum); // Записываем значение в адрес
    delay(10); // пауза для записи в ячейку EEPROM 
    temp_sn_one--; // переход к старшему разряду
-   Serial.println(randomNum);
+   //Serial.println(randomNum);
   }
-  Serial.println(F("CHANGE CRUM END")); 
+  
+    Serial.println(F("CHANGE RICOH CRUM GOOD"));
 }
 
 /************************************* ВЫВОД СЕРИЙНОГО НОМЕРА НА LCD *************************************/
 void print_sn_on_lcd()
 {  
-  Eeprom24C04_16 eeprom(address_eeprom); 
+  Eeprom24C01_16 eeprom(global_address_eeprom);
   eeprom.initialize(); 
 
   lcd.clear();
@@ -1546,15 +1641,17 @@ void print_sn_on_lcd()
   lcd.print(F("CRUM-"));
   lcd.setCursor(5,1);
   //
-  Serial.println(F("SERIAL NUMBER")); 
+  //Serial.println(F("SERIAL NUMBER")); 
   Serial.print(F("CRUM-")); 
   //
-  int global_number_byte_end_of_sn = 63;
-  int temp_start = global_number_byte_end_of_sn - 10;
-  int temp_end = global_number_byte_end_of_sn + 1;
-  for(int i = temp_start; i < temp_end; i++)
+  //int global_number_byte_end_of_sn = 63;
+  //int temp_start = global_number_byte_end_of_sn - 10; 
+  //int temp_end = global_number_byte_end_of_sn + 1;
+
+  // младший разряд crum 63
+  for(int i = 63 - 10; i < 63 + 1; i++)  
   {
-    char c = (char)eeprom.readByte(i); // получаем ascii из hex 
+    char c = (char)eeprom.readByte_24C04_16(i); // получаем ascii из hex 
     lcd.print(c);
     Serial.print(c);
   }
@@ -1567,10 +1664,10 @@ void print_sn_on_lcd()
 
 void read_chip_and_display_it()
 {
-  Eeprom24C04_16 eeprom(address_eeprom);
+  Eeprom24C01_16 eeprom(global_address_eeprom);
   eeprom.initialize(); 
 
-  //char c = (char)eeprom.readByte(0); // получил hex to ascii
+  //char c = (char)eeprom.readByte_24C04_16(0); // получил hex to ascii
   int byte_in_str = 16;
   //int sizeof_chip = 256;  // Показываем 16 строк
   //int sizeof_chip = 128;  // Показываем 8 строк
@@ -1586,17 +1683,18 @@ void read_chip_and_display_it()
       for (int i_2 = 0; i_2 < 17; i_2++)
       {
         lcd.setCursor(i_2,1);
-        char a = (char)eeprom.readByte(i_2 + i_1 * byte_in_str); // Получаем ascii
+        char a = (char)eeprom.readByte_24C04_16(i_2 + i_1 * byte_in_str); // Получаем ascii
         char b; // 
         if (a < 32){ b = 32; } // если a 0 то ставим пробел HEX(32)
         else{ b = a; }
         lcd.print(b); // 15 31 47 63 79 95 111 127
         //lcd.setCursor(i_2,0);
-        //Serial.println(eeprom.readByte(i_2 + i_1 * byte_in_str));
+        //Serial.println(eeprom.readByte_24C04_16(i_2 + i_1 * byte_in_str));
       }
       delay(500);
   }
-  lcd.clear();
+  
+  //lcd.clear();
   /*
   for (int i=0; i < 128; i++)
   {
@@ -1608,64 +1706,52 @@ void read_chip_and_display_it()
     //lcd.setCursor(i,0);
     Serial.println(eeprom.readByte(i));
   }
-  */
-
-  // Показываем текущий чип на экране
-  set_global_variables(global_id); 
+   */
 }
 
 /************************************* ПОКАЗ ДАМПА В МОНИТОРЕ ПОРТА *************************************/
 void extract_dump(int sizeof_chip)
 { 
-  // Включаем питание
+  lcd.clear();
+  lcd.print("READ DUMP ON PC");
+  // Подаем питание на чип
   power_on_for_chip();
   
-  Eeprom24C04_16 eeprom(address_eeprom);
-  eeprom.initialize();
-  
-  //int sizeof_chip = capacity_chip;  // Количество байт в чипе
-  int num_str_in_chip = sizeof_chip / 16; // Количство строк в чипе
-
-  Serial.println(F("Чтение дампа из чипа:"));
-  for (int count_str = 0; count_str < num_str_in_chip;  count_str++)
+  //сканируем шину i2c на наличие чипа, если есть ошибка перепрыгиваем на error_i2c_scan
+  if (search_address_chip_3())
   {
-    for (int i = 0; i < 16 ; i++)
-    {  
-      unsigned char letter = (unsigned char)eeprom.readByte(i + count_str * 16); // Получаем байт из чипа
-      if (letter < 16){ Serial.print(F("0")); } // Если это число меньше 16 то добавляем 0 спереди
-      Serial.print(letter, HEX); 
-      Serial.print(F(" "));
-    }
-    Serial.println(F("")); // Переход на новую строку
-  }
+      Eeprom24C01_16 eeprom(global_address_eeprom);
+      eeprom.initialize();
+      
+      //int sizeof_chip = capacity_chip;  // Количество байт в чипе
+      int num_str_in_chip = sizeof_chip / 16; // Количство строк в чипе
 
+      // Столбики и строки для красоты =)
+      //Serial.println(F(""));
+      //Serial.println(F("   | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0E 0D 0F"));
+      //Serial.println(F("- - - - - - - - - - - - - - - - - - - - - - - - - - "));
+      //const char* column[] = { "00", "10", "20", "30", "40", "50", "60", "70", "80", "90", "0A", "0B", "0C", "0D", "0E", "0F" };
+      
+      for (int count_str = 0; count_str < num_str_in_chip;  count_str++)
+      {
+        //Serial.print( column[count_str] );
+        //Serial.print(" | ");
+        
+        for (int i = 0; i < 16 ; i++)
+        {  
+          unsigned char letter = (unsigned char)eeprom.readByte_24C04_16(i + count_str * 16); // Получаем байт из чипа
+          if (letter < 16){ Serial.print(F("0")); } // Если это число меньше 16 то добавляем 0 спереди
+          Serial.print(letter, HEX); 
+          Serial.print(F(" "));
+        }
+        Serial.println(F("")); // Переход на новую строку
+      } 
+  }
+  
   // Включаем питание
   power_off_for_chip();
 
-  // Показываем текущий чип на экране
-  set_global_variables(global_id);
-}
-/************************************* ПРОВЕРКА КОНТАКТА НА ЧИПЕ *************************************/
-void check_contact()
-{
-  // По умолчанию считается что контакта с чипом нет (если все хорошо то этого сообщения не увидите)
-  lcd.clear(); lcd.print(F("CONTACT CHIP"));  lcd.setCursor(0,1); lcd.print(F("BAD"));
-  byte address = 1;
-  byte error = 0;
-  for(address = 1 ; address < 127; address++ )
-  {        
-    Wire.beginTransmission(address);
-    error = Wire.endTransmission();
-    if (error == 0)
-    {
-      //Serial.println(F("Contact GOOD"));
-      lcd.setCursor(0,1);
-      lcd.print(F("GOOD"));
-      break;
-    }
-  }
-  delay(1000);
-  // Показываем текущий чип на экране
+  // Возврат в меню
   set_global_variables(global_id);
 }
 
@@ -1675,25 +1761,23 @@ void firmware_chip_with_timer(int timer)
   // Таймер обратного отсчета
   countdown_timer(timer);
       
-  // Подаем питание и сканируем шину i2c на наличие чипа
+  // Подаем питание на чип
   power_on_for_chip();
-      
-  //Скоростная прошивка чипа
-  if(global_size_dump <= 256)
+  
+  //сканируем шину i2c на наличие чипа, если есть ошибка перепрыгиваем на error_i2c_scan
+  if (search_address_chip_3())
   {
-    firmware_24c01_02();
+     //Скоростная прошивка чипа
+    firmware();
   }
-  else
-  {
-    firmware_24c04_16();
-  }
-     
+  
   // Выключаем питание
-  power_off_for_chip();  
+  power_off_for_chip();
 
   // Возврат в меню
   set_global_variables(global_id);
 }
+
 /************************************* ТАЙМЕР ОБРАТНОГО ОТСЧЕТА *************************************/
 void countdown_timer(int timer)
 {
@@ -1711,36 +1795,38 @@ void countdown_timer(int timer)
 /************************************* ПОКАЗ ОТПЕЧАТАННЫХ СТРАНИЦ ДЛЯ RICOH *************************************/
 void total_pages_on_display_ricoh()
 {
-  // Включаем питание
+  // Подаем питание на чип
   power_on_for_chip();
   
-  Eeprom24C04_16 eeprom(address_eeprom);
-  eeprom.initialize(); 
-
-  lcd.clear();
-  lcd.print(F("TOTAL PAGE"));
-  lcd.setCursor(0,1);
+  //сканируем шину i2c на наличие чипа
+  if (search_address_chip_3()) 
+  {
+    Eeprom24C01_16 eeprom(global_address_eeprom);
+    eeprom.initialize(); 
+  
+    lcd.clear();
+    lcd.print(F("TOTAL PAGE"));
+    lcd.setCursor(0,1);
+      
+    byte HigherByte = eeprom.readByte_24C01_02(65); // Считываем 65 байт это старшый разряд
+    byte LowerByte = eeprom.readByte_24C01_02(64); // Считываем 64 байт это младший разряд
+    int Result = (HigherByte << 8) | LowerByte; // соединяем 2 разряда в одно
     
-  byte HigherByte = eeprom.readByte(65); // Считываем 65 байт это старшый разряд
-  byte LowerByte = eeprom.readByte(64); // Считываем 64 байт это младший разряд
-  int Result = (HigherByte << 8) | LowerByte; // соединяем 2 разряда в одно
+    lcd.print(Result); // показываем число на экран
+    
+    delay(5000); // 5 секунд  
+  }
   
-  lcd.print(Result); // показываем число на экран
-  
-  //delay(5000); // 5 секунд
-
-  //lcd.clear();
-
-  // Включаем питание
+  // Выключаем питание
   power_off_for_chip();
 
-  // Показываем текущий чип на экране
-  // database(global_id); 
+  // Возврат в меню
+  set_global_variables(global_id);
 }
 
 /************************************* ОТЛАДКА *************************************/
 
-/************************************* Узнаем сколько во время работы осталось RAM ******************************/
+/************************************* Узнаем сколько во время работы осталось RAM (не используется) ******************************/
 /*
 //Использование
 //Serial.println(memoryFree());
@@ -1762,42 +1848,4 @@ int memoryFree()
 }
 
 */
-/*
-  { "RICOH 2K", "GVCD", "SP 100 (SP 101E)", dump_ricoh_sp_101e_407059, sizeof(dump_ricoh_sp_101e_407059), 0 },
-  { "RICOH 2.6K", "GVCD", "SP 111 (SP 110E)", dump_ricoh_sp_110e_407441, sizeof(dump_ricoh_sp_110e_407441), 0 },
-  { "RICOH 1.5K", "GVCD", "SP 150", dump_ricoh_sp_150_408010, sizeof(dump_ricoh_sp_150_408010), 0 },
-  { "RICOH 2.6K", "GVCD", "200/02/03/10/12", dump_ricoh_sp_200_hl_407262, sizeof(dump_ricoh_sp_200_hl_407262), 0 },
-  { "RICOH 2.6K", "GVCD", "201/04/11/13/20", dump_ricoh_sp_201_hl_111135, sizeof(dump_ricoh_sp_201_hl_111135), 0 },
-  { "RICOH 2K", "GVDC", "C220-222 240 B", dump_ricoh_sp_c220_221_222_240_406144_black, sizeof(dump_ricoh_sp_c220_221_222_240_406144_black), 0 },
-  { "RICOH 2K", "GVDC", "C220-222 240 C", dump_ricoh_sp_c220_221_222_240_406145_cyan, sizeof(dump_ricoh_sp_c220_221_222_240_406145_cyan), 0 },
-  { "RICOH 2K", "GVDC", "C220-222 240 M", dump_ricoh_sp_c220_221_222_240_406146_magenta, sizeof(dump_ricoh_sp_c220_221_222_240_406146_magenta), 0 },
-  { "RICOH 2K", "GVDC", "C220-222 240 Y", dump_ricoh_sp_c220_221_222_240_406147_yellow, sizeof(dump_ricoh_sp_c220_221_222_240_406147_yellow), 0 },
-  { "RICOH 2K", "GVDC", "SP 250/260 B", dump_ricoh_sp_c250_c260_407543_black, sizeof(dump_ricoh_sp_c250_c260_407543_black), 0 },
-  { "RICOH 2K", "GVDC", "SP 250/260 M", dump_ricoh_sp_c250_c260_407545_magenta, sizeof(dump_ricoh_sp_c250_c260_407545_magenta), 0 },
-  { "RICOH 2K", "GVDC", "SP 250/260 Y", dump_ricoh_sp_c250_c260_407546_yellow, sizeof(dump_ricoh_sp_c250_c260_407546_yellow), 0 },
-  { "RICOH 2K", "GVDC", "SP 250/260 C", dump_ricoh_sp_c250_c260_407544_cyan, sizeof(dump_ricoh_sp_c250_c260_407544_cyan), 0 },
-  { "RICOH 6.5K", "GVDC", "SP 252 B", dump_ricoh_sp_c252_407716_black, sizeof(dump_ricoh_sp_c252_407716_black), 0 },
-  { "RICOH 6K", "GVDC", "SP 252 C", dump_ricoh_sp_c252_407717_cyan, sizeof(dump_ricoh_sp_c252_407717_cyan),0 },
-  { "RICOH 6K", "GVDC", "SP 252 M", dump_ricoh_sp_c252_407718_magenta, sizeof(dump_ricoh_sp_c252_407718_magenta), 0 },
-  { "RICOH 6K", "GVDC", "SP 252 Y", dump_ricoh_sp_c252_407719_yellow, sizeof(dump_ricoh_sp_c252_407719_yellow), 0 },
-  { "RICOH 2.6K", "GVCD", "SP 277", dump_ricoh_sp_277_408160, sizeof(dump_ricoh_sp_277_408160), 0 },
-  { "RICOH 1.5K", "GVDC", "SP 300", dump_ricoh_sp_300_406956, sizeof(dump_ricoh_sp_300_406956), 0 },
-  { "RICOH 6K", "GVDC", "SP 310 B", dump_ricoh_sp_310_406479_black, sizeof(dump_ricoh_sp_310_406479_black), 0 },
-  { "RICOH 6K", "GVDC", "SP 310 Y", dump_ricoh_sp_310_406482_yellow, sizeof(dump_ricoh_sp_310_406482_yellow), 0 },
-  { "RICOH 6K", "GVDC", "SP 310 M", dump_ricoh_sp_310_122728_magenta, sizeof(dump_ricoh_sp_310_122728_magenta), 0 },
-  { "RICOH 6K", "GVDC", "SP 310 C", dump_ricoh_sp_310_122700_cyan, sizeof(dump_ricoh_sp_310_122700_cyan), 0 },
-  { "RICOH 3.5K", "GVCD", "SP 311/325", dump_ricoh_sp_311_407246, sizeof(dump_ricoh_sp_311_407246), 0 },
-  { "RICOH 6.4K", "GVCD", "SP 311/325", dump_ricoh_sp_311_821242, sizeof(dump_ricoh_sp_311_821242), 0 },
-  { "RICOH 7K", "GVCD", "SP 330", dump_ricoh_sp_330_408283, sizeof(dump_ricoh_sp_330_408283), 0 },
-  { "RICOH 5K", "GVCD", "SP 400/450", dump_ricoh_sp_400_450, sizeof(dump_ricoh_sp_400_450), 0 },
-  { "RICOH 5K", "GVDC", "3400/10 3500/10", dump_ricoh_sp_3400he_406522, sizeof(dump_ricoh_sp_3400he_406522), 0 },
-  { "RICOH 6.4K", "GVDC", "ONLY 3500/10", dump_ricoh_sp_3500xe_406990, sizeof(dump_ricoh_sp_3500xe_406990), 0 },
-  { "RICOH 12K", "GVCD", "SP 3600/10 4510", dump_ricoh_sp_4500he_407318, sizeof(dump_ricoh_sp_4500he_407318), 3 },      // 3 функция с 23 начало
-  { "SAMSUNG 3K", "VDCG", "SCX 4200/20", dump_samsung_scx_d4200a, sizeof(dump_samsung_scx_d4200a), 1 },                 // 1 функция с 63 начало
-  { "XEROX 2K", "VDCG", "PE 220", dump_xerox_013R00621, sizeof(dump_xerox_013R00621), 1 },                              // 1 функция с 63 начало
-  { "XEROX 3K", "VDCG", "WC 3119", dump_xerox_013R00625, sizeof(dump_xerox_013R00625), 1 },                             // 1 функция с 63 начало
-  { "XEROX 8K", "GCDV", "WC 4118", dump_xerox_006R01278, sizeof(dump_xerox_006R01278), 2 },                             // 2 функция с 63 начало и 191
-  { "RICOH 5K", "GVDC", "SP 360 Y", dump_ricoh_sp_360_408179_yellow, sizeof(dump_ricoh_sp_360_408179_yellow), 0 },
-  { "RICOH 5K", "GVDC", "SP 360 M", dump_ricoh_sp_360_408178_magenta, sizeof(dump_ricoh_sp_360_408178_magenta), 0 },
-  { "RICOH 5K", "GVDC", "SP 360 C", dump_ricoh_sp_360_408177_cyan, sizeof(dump_ricoh_sp_360_408177_cyan), 0 }           // Последняя строка без запятой !!!
-  */
+
