@@ -1,5 +1,10 @@
 /*  
 Auto Resetter wthiout sd card by Galavarez
+* Версия 12.07.2021
+- Если кнопка Select не работает (указано не верное число) в начале цикла void loop() я добавил 2 сроки, 
+их надо раскоментировать и залить скетч. В мониторе порта (Serial monitor) будет показываться число нажатой кнопки.
+Эти значения надо записать в BUTTON_UP....BUTTON_SELECT и снова залить скетч.Тогда все кнопки заработают как задуманно.
+
 * Версия 02.07.2021
 Очередное глобальное обновление:
 - Убрал стандартную библиотеку Wire, поставил в место нее альтернативную(I2C-master). Теперь при сканирование шины с плохим контактом обнулятор
@@ -872,11 +877,11 @@ int global_button_select = 0;
 // Настроить под себя если клавиатура плохо работает.
 // Указать значение БОЛЬШЕ чем у вас выдает кнопка
                               // LCD Keypad shield v 1        // LCD Keypad shield v 1.1  (тестировал на 2х Keypad shield)   
-int BUTTON_UP = 95;          // Пример у меня значение 132   // 96 или 100
-int BUTTON_DOWN = 250;        // Пример у меня значение 334   // 251 или 255
-int BUTTON_RIGHT = 5;        // Пример у меня значение 3     // 0 или 0
-int BUTTON_LEFT = 405;        // Пример у меня значение 482   // 404 или 407
-int BUTTON_SELECT = 640;      // Пример у меня значение 720   // 637 или 638
+int BUTTON_UP = 130;          // Пример у меня значение 132   // 96 или 100
+int BUTTON_DOWN = 308;        // Пример у меня значение 334   // 251 или 255
+int BUTTON_RIGHT = 4;        // Пример у меня значение 3     // 0 или 0
+int BUTTON_LEFT = 480;        // Пример у меня значение 482   // 404 или 407
+int BUTTON_SELECT = 720;      // Пример у меня значение 720   // 637 или 638
 // Кнопка была нажата или нет
 boolean BUTTON_BUSY = false;
 
@@ -997,31 +1002,7 @@ void set_global_variables(int row)
 void setup() 
 {   
   
-  /*
-  // объявляем структуру кнопок
-  struct StructButton {
-    int BUTTON_UP = 110;
-    int BUTTON_DOWN = 250;
-    int BUTTON_LEFT = 410;
-    int BUTTON_RIGHT = 5;
-    int BUTTON_SELECT = 640;
-  };
-
-  // Записываем по адресу 0 стандыртные значения, указав размер структуры и приведя к void*
-  eeprom_write_block((void*)&StructButton, 0, sizeof(StructButton));
-
-  if (global_calibration_button == false)
-  { 
-     // создаём новую пустую структуру
-     StructButton NewStructButton;
-     // читаем из адреса 0
-     eeprom_read_block((void*)&newStruct, 0, sizeof(newStruct));      
-  }
-
-  */
- 
-
-
+  
   lcd.begin(16, 2);  // Инициализируем LCD 16x2
   Serial.begin(9600); //инициализируем последовательное соединение для работы с ПК
   while (!Serial) { ; } // Ждем когда подключится ардуино к пк по usb
@@ -1047,6 +1028,8 @@ void setup()
   
   // Устанавливаем глобальные переменные и показываем первый чип на экране
   set_global_variables(global_id);
+
+
 }
 
 
@@ -1054,6 +1037,10 @@ void setup()
 
 void loop() 
 {  
+  // Раскоментироваь 2 нижние строки и смореть значение кнопока в мониторе порта 
+  //Serial.println(F("VALUES BUTTON = "));
+  //Serial.println(analogRead(0));
+
   /* ОБРАБОТКА НАЖАТИЯ КНОПОК */
 
   switch ( button(BUTTON_RIGHT) )
