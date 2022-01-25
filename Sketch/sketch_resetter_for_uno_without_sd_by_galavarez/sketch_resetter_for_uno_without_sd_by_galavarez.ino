@@ -1,5 +1,18 @@
 /*  
 Auto Resetter wthiout sd card by Galavarez
+* Версия 25.01.2022
+- Добавил автонастройку кнопок (давно надо было это сделать). При включение обнулятор попроси нажать, а потом отпустить кнопки по очередно, а потом нажать reset. 
+Все значения сохранит у себя в памяти и больше не будет вас этим тревожить. Значения хранятся даже если перезалить скетч.
+Если надо сделать перекалибровку кнопок то через доп программу Calibration keypad shield можно это сделать.
+Стереть значения можно через доп программу "Calibration keypad shield" или в ручную раскоментировав (а потом закоментировать) функцияю clear_value_button() в setup
+- Как я выяснил в ардуино uno разработчики платы предусмотрели на контактах DATA CLK свои внутренние резисторы, поэтому схема сборки еще упрощается =) 
+Выкидываем резисторы и без них все прекрасно работает.
+
+* Версия 16.12.2021
+- Добавил авто отключения ардуино после 30 секунд бездействия, время можно увеличить в функции time_to_sleep().
+Не забудьте выпаять светодиоды или резисторы (на ардуино uno => R17, R6, R7, R16 и на lcd keypad shield => R1 ) чтобы увеличить в автономный режим. 
+Со светодиодами ардуина кушает 15-17 mA а без них 2 mA.
+
 * Версия 12.07.2021
 - Если кнопка Select не работает (указано не верное число) в начале цикла void loop() я добавил 2 сроки, 
 их надо раскоментировать и залить скетч. В мониторе порта (Serial monitor) будет показываться число нажатой кнопки.
@@ -822,14 +835,21 @@ const PROGMEM byte dump_xerox_006R01278[512] = {
 
 
 /** НАЧАЛО **/
+// Подключаем библиотеку которая позволяет взаимодействовать с различными устройствами по интерфейсу I2C / TWI.
 #include <I2C.h>
 
 // Подключаем библиотеку которая позволяет управлять микросхемами 24CXX подключать их на ПИН A4 (SDA), A5 (SCL)
 #include <Eeprom24C01_16.h> // Библиотека работает с 24C01 24C02 24C04 24C08 24C16
 
 // Подключаем библиотеку которая позволяет взаимодействовать с различными устройствами по интерфейсу I2C / TWI.
-#include <I2C.h>
+//#include <I2C.h>
 
+// Библиотека которая позволяет перевести в спящий режим ардуино
+#include <avr/sleep.h>
+
+// Библиотека которая позволяет работать с внутренней памятью Arduino
+#include <EEPROM.h>;
+  
 // Подключаем библиотеку которая позволяет управлять различными жидкокристаллическими дисплеями (LCD)
 #include <LiquidCrystal.h>  
 // Подключаем библиотеку для записи статических строк во FLASH а не в RAM 
@@ -877,13 +897,23 @@ int global_button_select = 0;
 // Настроить под себя если клавиатура плохо работает.
 // Указать значение БОЛЬШЕ чем у вас выдает кнопка
                               // LCD Keypad shield v 1        // LCD Keypad shield v 1.1  (тестировал на 2х Keypad shield)   
-int BUTTON_UP = 130;          // Пример у меня значение 132   // 96 или 100
-int BUTTON_DOWN = 308;        // Пример у меня значение 334   // 251 или 255
-int BUTTON_RIGHT = 4;        // Пример у меня значение 3     // 0 или 0
-int BUTTON_LEFT = 480;        // Пример у меня значение 482   // 404 или 407
-int BUTTON_SELECT = 720;      // Пример у меня значение 720   // 637 или 638
+//int BUTTON_UP = 96;          // Пример у меня значение 132   // 96 или 100
+//int BUTTON_DOWN = 251;        // Пример у меня значение 334   // 251 или 255
+//int BUTTON_RIGHT = 0;        // Пример у меня значение 3     // 0 или 0
+//int BUTTON_LEFT = 403;        // Пример у меня значение 482   // 404 или 407
+//int BUTTON_SELECT = 637;      // Пример у меня значение 720   // 637 или 638
+
+int BUTTON_UP;
+int BUTTON_DOWN;
+int BUTTON_RIGHT;
+int BUTTON_LEFT;
+int BUTTON_SELECT;
+
 // Кнопка была нажата или нет
 boolean BUTTON_BUSY = false;
+
+// Храним время последнео нажатия любой кнопки кроме reset
+unsigned long global_timer_to_sleep = 0;
 
 
 // ** DEFINE ** //
@@ -1001,8 +1031,8 @@ void set_global_variables(int row)
 
 void setup() 
 {   
-  
-  
+  //pinMode(10,OUTPUT);
+
   lcd.begin(16, 2);  // Инициализируем LCD 16x2
   Serial.begin(9600); //инициализируем последовательное соединение для работы с ПК
   while (!Serial) { ; } // Ждем когда подключится ардуино к пк по usb
@@ -1024,12 +1054,16 @@ void setup()
   // Подсчитываем сколько чипов в Базе 
   global_all_chip_in_database = ( sizeof(datebase) / sizeof(Struct_DB) ) - 1 ; 
   //Serial.print("Rows in DB => ");
-  //Serial.println( global_all_chip_in_database );
+  //Serial.println( global_all_chip_in_database );  
+
+  // Очистка EEPROM
+  // clear_value_button();
   
+  // Проверка если значения кнопока в памяти есть то считываем их иначе просим их ввести
+  if ( purity_eeprom_check() == true ) { write_value_button(); } else { read_value_button(); } 
+
   // Устанавливаем глобальные переменные и показываем первый чип на экране
   set_global_variables(global_id);
-
-
 }
 
 
@@ -1037,10 +1071,6 @@ void setup()
 
 void loop() 
 {  
-  // Раскоментироваь 2 нижние строки и смореть значение кнопока в мониторе порта 
-  //Serial.println(F("VALUES BUTTON = "));
-  //Serial.println(analogRead(0));
-
   /* ОБРАБОТКА НАЖАТИЯ КНОПОК */
 
   switch ( button(BUTTON_RIGHT) )
@@ -1171,9 +1201,9 @@ void loop()
             break;
         case 1:
           lcd.clear();
-          lcd.print(F("Sizing button"));
+          lcd.print(F("Calibration"));
           lcd.setCursor(0,1);
-          lcd.print(F("Exit only RESET"));               
+          lcd.print(F("keypad shield"));               
           break;
         case 2:
           lcd.clear();
@@ -1218,6 +1248,7 @@ void loop()
         break;
       case 1:
         calibration_button(); // Калибровка кнопок
+        break;
       case 2:
         total_pages_on_display_ricoh(); // Показываем на дисплей количество страниц из чипа (только для Ricoh)
         break;
@@ -1238,23 +1269,111 @@ void loop()
       global_button_select = 0;
       break;
   }
-  
+
+  // Переводим в спящий режим ардуино
+  time_to_sleep();
 }
 
-
-/****************************** КАЛИБРОВКА КНОПО LCD KEYPAD SHIELD ******************************/
-void calibration_button()
+/****************************** ЗАПИСЬ ЧТЕНИЕ ОБНУЛЕНИЕ КАЛИБРОВКА В EEPROM КНОПОК LCD KEYPAD SHIELD ******************************/
+// Считываем из EEPROM
+void read_value_button()
 {
-  // долгое нажатие сохраняет 
-  while(true)
+  for(int i = 0; i < 5; i++)
+  {
+    int value;
+    if ( i == 0 ) { BUTTON_UP = word( EEPROM.read(0), EEPROM.read(1) ); Serial.print(F("UP => ")); Serial.println(BUTTON_UP); };
+    if ( i == 1 ) { BUTTON_DOWN = word( EEPROM.read(2), EEPROM.read(3) ); Serial.print(F("DOWN => ")); Serial.println(BUTTON_DOWN); };
+    if ( i == 2 ) { BUTTON_RIGHT = word( EEPROM.read(4), EEPROM.read(5) ); Serial.print(F("RIGHT => ")); Serial.println(BUTTON_RIGHT); };
+    if ( i == 3 ) { BUTTON_LEFT = word( EEPROM.read(6), EEPROM.read(7) ); Serial.print(F("LEFT => ")); Serial.println(BUTTON_LEFT); };
+    if ( i == 4 ) { BUTTON_SELECT = word( EEPROM.read(8), EEPROM.read(9) ); Serial.print(F("SELECT => ")); Serial.println(BUTTON_SELECT); };
+  }
+}
+
+// записываем в EEPROM
+void write_value_button()
+{
+  for (int i = 0; i < 5; i++)
   {
     lcd.clear();
-    lcd.print("VALUES BUTTON");
+    lcd.print(F("PRESS"));
     lcd.setCursor(0,1);
-    lcd.print(analogRead(0));
-    delay(1000);
+    //
+    switch(i)
+    {
+      case 0:
+        lcd.print(F("BUTTON UP"));
+        break;
+      case 1:
+        lcd.print(F("BUTTON DOWN"));
+        break;
+      case 2:
+        lcd.print(F("BUTTON RIGHT"));
+        break;
+      case 3:
+        lcd.print(F("BUTTON LEFT"));
+        break;
+      case 4:
+        lcd.print(F("BUTTON SELECT"));
+        break;
+    } 
+    // Считываем значение каждой кнопки 5 раз
+    for(int k = 0; k < 5; k++)
+    {
+      delay(1000);
+      int value = analogRead(0); // Считываем значение кнопки
+      byte hi = highByte(value); // Запоминаем старший байт
+      byte low = lowByte(value); // Запоминаем младший байт
+      if ( i == 0 ) { EEPROM.write(0, hi); EEPROM.write(1, low); };
+      if ( i == 1 ) { EEPROM.write(2, hi); EEPROM.write(3, low); };
+      if ( i == 2 ) { EEPROM.write(4, hi); EEPROM.write(5, low); };
+      if ( i == 3 ) { EEPROM.write(6, hi); EEPROM.write(7, low); };
+      if ( i == 4 ) { EEPROM.write(8, hi); EEPROM.write(9, low); };      
+      Serial.println(value);
+    }
+    //
+    //lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print(F("NOT PRESS"));
+    delay(3000);
+
+    // обнуляем счетчик сна
+    reset_time_to_sleep();
   }
-  
+}
+
+// Очищаем EEPROM
+void clear_value_button()
+{
+  for (int i = 0 ; i < EEPROM.length() ; i++) 
+  {
+    EEPROM.write(i, 255);
+  }
+}
+
+// Проверка EEPROM на чистоту -- true eeprom чистая
+bool purity_eeprom_check()
+{
+  if ( 
+    word( EEPROM.read(0), EEPROM.read(1) ) == 65535 || 
+    word( EEPROM.read(2), EEPROM.read(3) ) == 65535 || 
+    word( EEPROM.read(4), EEPROM.read(5) ) == 65535 ||
+    word( EEPROM.read(6), EEPROM.read(7) )== 65535 || 
+    word( EEPROM.read(8), EEPROM.read(9) )== 65535
+    ) { return true; } else { return false; }   
+}
+
+// Калибровка кнопок
+void calibration_button()
+{
+   // Очищаем EEPROM
+   clear_value_button();
+   // Запускаем ввод значений
+   write_value_button();
+   // Говорим что нужно перезапустить arduino
+   lcd.clear();
+   lcd.print(F("PRESS BUTTON"));
+   lcd.setCursor(0,1);
+   lcd.print(F("RESET"));
 }
 /****************************** ЗАЩИТА ОТ ДРЕБЕЗГА КНОПОК И ПРОВЕКА СОСТОЯНИЯ КНОПКИ ******************************/
 // Возвращаем true - кнопка нажата   false - не нажата
@@ -1273,7 +1392,9 @@ bool button_on_off(int RESISTOR_BUTTON)
     delay(50);
     RESISTOR_NOW = analogRead(0); 
     if ( RESISTOR_NOW > RESISTOR_BUTTON_MIN && RESISTOR_NOW < RESISTOR_BUTTON_MAX ) 
-    {
+    {   
+      // Если нажали любую кнопку то обнуляем счетчик сна
+      reset_time_to_sleep();
       // Кнопка нажата
       return true;
     }
@@ -1294,9 +1415,9 @@ bool button_on_off(int RESISTOR_BUTTON)
 // Возвращаем 1 - SHORT click   2 - LONG click
 int button(int RESISTOR_BUTTON)
 {  
-
+    
   if ( button_on_off(RESISTOR_BUTTON) == true ) 
-  { 
+  {  
     // Запускаем таймер
     unsigned long time_push_button = millis();
     // Время срабатывание Long click
@@ -1615,7 +1736,7 @@ void change_crum_ricoh()
   
     Serial.println(F("CHANGE RICOH CRUM GOOD"));
 }
-
+  
 /************************************* ВЫВОД СЕРИЙНОГО НОМЕРА НА LCD *************************************/
 void print_sn_on_lcd()
 {  
@@ -1811,6 +1932,37 @@ void total_pages_on_display_ricoh()
   set_global_variables(global_id);
 }
 
+/************************************* ОТПРАВЛЯЕМ В СОН АРДУИНО *************************************/
+void time_to_sleep()
+{
+  // Не забудьте выпаять светодиоды 
+  // Время до сна 30 сек
+  unsigned long timer = 30000;
+  // Секундомер
+  unsigned long stopwatch = millis() - global_timer_to_sleep; 
+  //Serial.println(stopwatch);
+  if ( stopwatch > timer)
+    {
+      //Serial.println("SLEEP");
+      //Отключаем дисплей
+      lcd.noDisplay();  delay(500);
+      //Отключаем подсветку
+      pinMode(10,OUTPUT);
+      // Запрещаем просыпаться от всего кроме как по кнопке reset 
+      noInterrupts();
+      // Включаем глубой сон
+      set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+      sleep_mode();  
+    }
+   //Serial.println("NO SLEEP");
+}
+
+// обнуление счетчика сна запихнул в функцию bool button_on_off(int RESISTOR_BUTTON)
+void reset_time_to_sleep()
+{
+  global_timer_to_sleep = millis();
+}
+
 /************************************* ОТЛАДКА *************************************/
 
 /************************************* Узнаем сколько во время работы осталось RAM (не используется) ******************************/
@@ -1835,4 +1987,3 @@ int memoryFree()
 }
 
 */
-
