@@ -1,5 +1,8 @@
 /*  
 Auto Resetter wthiout sd card by Galavarez
+* Версия 20.05.2022
+- Поменял название PRESS и NOT PRESS на более понятные HOLD DOWN (удерживать кнопку) и PUSH OUT BUTTON (отпустить кнопку) при автонастройке обнулятора.
+
 * Версия 25.01.2022
 - Добавил автонастройку кнопок (давно надо было это сделать). При включение обнулятор попроси нажать, а потом отпустить кнопки по очередно, а потом нажать reset. 
 Все значения сохранит у себя в памяти и больше не будет вас этим тревожить. Значения хранятся даже если перезалить скетч.
@@ -1295,7 +1298,7 @@ void write_value_button()
   for (int i = 0; i < 5; i++)
   {
     lcd.clear();
-    lcd.print(F("PRESS"));
+    lcd.print(F("HOLD DOWN"));
     lcd.setCursor(0,1);
     //
     switch(i)
@@ -1331,9 +1334,9 @@ void write_value_button()
       Serial.println(value);
     }
     //
-    //lcd.clear();
+    lcd.clear();
     lcd.setCursor(0,0);
-    lcd.print(F("NOT PRESS"));
+    lcd.print(F("PUSH OUT BUTTON"));
     delay(3000);
 
     // обнуляем счетчик сна
