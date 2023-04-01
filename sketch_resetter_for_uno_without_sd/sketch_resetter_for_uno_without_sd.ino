@@ -1026,6 +1026,8 @@ const PROGMEM char PINOUT_GVCD[] = { "GVCD" };
 const PROGMEM char PINOUT_GVDC[] = { "GVDC" };
 const PROGMEM char PINOUT_VDCG[] = { "VDCG" };
 const PROGMEM char PINOUT_GCDV[] = { "GCDV" };
+const PROGMEM char PINOUT_GDCV[] = { "GDCV" };
+
 // => PAGE
 const PROGMEM char PAGE_1_5_K[] = { "1.5K" };
 const PROGMEM char PAGE_2_K[] = { "2K" };
@@ -1063,49 +1065,46 @@ Struct_DB datebase[] = {
   // Brand, Page, Pinuot, Note, Dump, Size, Crum
   // Crum 0 = Ни чего не делать ; 1 = Генерация 1 серийника Samsung|Xerox ; 2 - Генерация 2х серийников Samsung|Xerox; 3 - Генерация 1 серийника Ricoh  
 
-  //{ BRAND_RICOH,    PAGE_2_K,   PINOUT_GVCD, NOTE_SP_100, dump_ricoh_sp_101e_407059, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_2_6_K, PINOUT_GVCD, NOTE_SP_111, dump_ricoh_sp_110e_407441, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_1_5_K, PINOUT_GVCD, NOTE_SP_150, dump_ricoh_sp_150_408010, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_2_6_K, PINOUT_GVCD, NOTE_SP_200_202_203_210_212, dump_ricoh_sp_200_hl_407262, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_2_6_K, PINOUT_GVCD, NOTE_SP_201_204_211_213_220, dump_ricoh_sp_201_hl_111135,CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C220_B, dump_ricoh_sp_c220_221_222_240_406144_black, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C220_C, dump_ricoh_sp_c220_221_222_240_406145_cyan, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C220_M, dump_ricoh_sp_c220_221_222_240_406146_magenta, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C220_Y, dump_ricoh_sp_c220_221_222_240_406147_yellow, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C250_260_B, dump_ricoh_sp_c250_c260_407543_black, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C250_260_M, dump_ricoh_sp_c250_c260_407545_magenta, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C250_260_Y, dump_ricoh_sp_c250_c260_407546_yellow, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C250_260_C, dump_ricoh_sp_c250_c260_407544_cyan, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_6_5_K, PINOUT_GVDC, NOTE_SP_C252_B, dump_ricoh_sp_c252_407716_black, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_C252_C, dump_ricoh_sp_c252_407717_cyan, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_C252_M, dump_ricoh_sp_c252_407718_magenta, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_C252_Y, dump_ricoh_sp_c252_407719_yellow, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_2_6_K, PINOUT_GVCD, NOTE_SP_277, dump_ricoh_sp_277_408160, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_1_5_K, PINOUT_GVDC, NOTE_SP_300, dump_ricoh_sp_300_406956, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_310_B, dump_ricoh_sp_310_406479_black, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_310_Y, dump_ricoh_sp_310_406482_yellow, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_310_M, dump_ricoh_sp_310_122728_magenta, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_310_C, dump_ricoh_sp_310_122700_cyan, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_3_5_K, PINOUT_GVCD, NOTE_SP_311_325_NORMAL, dump_ricoh_sp_311_407246, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_6_4_K, PINOUT_GVCD, NOTE_SP_311_325_LARGE, dump_ricoh_sp_311_821242, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_7_K,   PINOUT_GVCD, NOTE_SP_330, dump_ricoh_sp_330_408283, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_6_4_K, PINOUT_GVCD, NOTE_SP_377, DUMP_SP_377, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_5_K,   PINOUT_GVCD, NOTE_SP_400_450, dump_ricoh_sp_400_450, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_3400_3410_3500_3510, dump_ricoh_sp_3400he_406522, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_6_4_K, PINOUT_GVDC, NOTE_SP_3500_3510, dump_ricoh_sp_3500xe_406990, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_12_K,  PINOUT_GVCD, NOTE_SP_3600_3610_4510, dump_ricoh_sp_4500he_407318, CHIP_MEMORY_128, 3 },      // 3 функция с 23 начало
-  //{ BRAND_SAMSUNG,  PAGE_3_K,   PINOUT_VDCG, NOTE_SCX_D4200, dump_samsung_scx_d4200a, CHIP_MEMORY_512 , 1 },                 // 1 функция с 63 начало
-  //{ BRAND_XEROX,    PAGE_2_K,   PINOUT_VDCG, NOTE_PE_220, dump_xerox_013R00621, CHIP_MEMORY_512, 1 },                              // 1 функция с 63 начало
-  //{ BRAND_XEROX,    PAGE_3_K,   PINOUT_VDCG, NOTE_WC_3119, dump_xerox_013R00625, CHIP_MEMORY_512 , 1 },                             // 1 функция с 63 начало
-  //{ BRAND_XEROX,    PAGE_8_K,   PINOUT_GCDV, NOTE_WC_4118, dump_xerox_006R01278, CHIP_MEMORY_512 , 2 },                             // 2 функция с 63 начало и 191
-  //{ BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_Y, dump_ricoh_sp_360_408179_yellow, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_M, dump_ricoh_sp_360_408178_magenta, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_C, dump_ricoh_sp_360_408177_cyan, CHIP_MEMORY_128 , 0 },
-  //{ BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_B, DUMP_SP_360_BLACK, CHIP_MEMORY_128 , 0 } 
-  
   { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVCD, NOTE_SP_100, dump_ricoh_sp_101e_407059, CHIP_MEMORY_128 , 0 },
-  { BRAND_SAMSUNG,  PAGE_3_K,   PINOUT_VDCG, NOTE_SCX_D4200, dump_samsung_scx_d4200a, CHIP_MEMORY_512 , 1 },          
-  { BRAND_CANON,    PAGE_5_K,   PINOUT_GVDC, NOTE_CANON_G_SERIES, dump_canon_g_series, CHIP_MEMORY_2048 , 0 }
+  { BRAND_RICOH,    PAGE_2_6_K, PINOUT_GVCD, NOTE_SP_111, dump_ricoh_sp_110e_407441, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_1_5_K, PINOUT_GVCD, NOTE_SP_150, dump_ricoh_sp_150_408010, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_2_6_K, PINOUT_GVCD, NOTE_SP_200_202_203_210_212, dump_ricoh_sp_200_hl_407262, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_2_6_K, PINOUT_GVCD, NOTE_SP_201_204_211_213_220, dump_ricoh_sp_201_hl_111135,CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C220_B, dump_ricoh_sp_c220_221_222_240_406144_black, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C220_C, dump_ricoh_sp_c220_221_222_240_406145_cyan, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C220_M, dump_ricoh_sp_c220_221_222_240_406146_magenta, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C220_Y, dump_ricoh_sp_c220_221_222_240_406147_yellow, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C250_260_B, dump_ricoh_sp_c250_c260_407543_black, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C250_260_M, dump_ricoh_sp_c250_c260_407545_magenta, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C250_260_Y, dump_ricoh_sp_c250_c260_407546_yellow, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C250_260_C, dump_ricoh_sp_c250_c260_407544_cyan, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_6_5_K, PINOUT_GVDC, NOTE_SP_C252_B, dump_ricoh_sp_c252_407716_black, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_C252_C, dump_ricoh_sp_c252_407717_cyan, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_C252_M, dump_ricoh_sp_c252_407718_magenta, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_C252_Y, dump_ricoh_sp_c252_407719_yellow, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_2_6_K, PINOUT_GVCD, NOTE_SP_277, dump_ricoh_sp_277_408160, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_1_5_K, PINOUT_GVDC, NOTE_SP_300, dump_ricoh_sp_300_406956, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_310_B, dump_ricoh_sp_310_406479_black, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_310_Y, dump_ricoh_sp_310_406482_yellow, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_310_M, dump_ricoh_sp_310_122728_magenta, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_310_C, dump_ricoh_sp_310_122700_cyan, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_3_5_K, PINOUT_GVCD, NOTE_SP_311_325_NORMAL, dump_ricoh_sp_311_407246, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_6_4_K, PINOUT_GVCD, NOTE_SP_311_325_LARGE, dump_ricoh_sp_311_821242, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_7_K,   PINOUT_GVCD, NOTE_SP_330, dump_ricoh_sp_330_408283, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_6_4_K, PINOUT_GVCD, NOTE_SP_377, DUMP_SP_377, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_5_K,   PINOUT_GVCD, NOTE_SP_400_450, dump_ricoh_sp_400_450, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_3400_3410_3500_3510, dump_ricoh_sp_3400he_406522, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_6_4_K, PINOUT_GVDC, NOTE_SP_3500_3510, dump_ricoh_sp_3500xe_406990, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_12_K,  PINOUT_GVCD, NOTE_SP_3600_3610_4510, dump_ricoh_sp_4500he_407318, CHIP_MEMORY_128, 3 },      // 3 функция с 23 начало
+  { BRAND_SAMSUNG,  PAGE_3_K,   PINOUT_VDCG, NOTE_SCX_D4200, dump_samsung_scx_d4200a, CHIP_MEMORY_512 , 1 },                 // 1 функция с 63 начало
+  { BRAND_XEROX,    PAGE_2_K,   PINOUT_VDCG, NOTE_PE_220, dump_xerox_013R00621, CHIP_MEMORY_512, 1 },                              // 1 функция с 63 начало
+  { BRAND_XEROX,    PAGE_3_K,   PINOUT_VDCG, NOTE_WC_3119, dump_xerox_013R00625, CHIP_MEMORY_512 , 1 },                             // 1 функция с 63 начало
+  { BRAND_XEROX,    PAGE_8_K,   PINOUT_GCDV, NOTE_WC_4118, dump_xerox_006R01278, CHIP_MEMORY_512 , 2 },                             // 2 функция с 63 начало и 191
+  { BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_Y, dump_ricoh_sp_360_408179_yellow, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_M, dump_ricoh_sp_360_408178_magenta, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_C, dump_ricoh_sp_360_408177_cyan, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_B, DUMP_SP_360_BLACK, CHIP_MEMORY_128 , 0 },         
+  { BRAND_CANON,    PAGE_5_K,   PINOUT_GDCV, NOTE_CANON_G_SERIES, dump_canon_g_series, CHIP_MEMORY_2048 , 0 }
 
 
   // Последняя строка без запятой !!!
