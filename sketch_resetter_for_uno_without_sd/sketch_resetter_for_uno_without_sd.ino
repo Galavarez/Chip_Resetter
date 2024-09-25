@@ -1,5 +1,17 @@
 /*  
 Auto Resetter wthiout sd card by Galavarez
+* Версия 10.07.2024
+- Добавил дамп от Катюши TK240А был до этого только TK240Х
+
+* Версия 19.05.2024
+- Переписал поиск чипа чтобы Resetter работать с чипами для принтера катюша а это чипы GT24C02-2GLI-TR 402-2GLI 402-2GL1 FA5522N-A2-TE1 FA5522 MC5522 5522.
+- Добавил дамп чипов катюша TK240 (картридж) и DR240 (драм) а так же написал авто генератор crum`a для них, фотки чипов и их распиновок в папке Photos of the chip 
+- Добавил дамп чипа Ricoh SP 4500/4510/3600/3610 на 6K, до этого был только на 12К
+- Добавил перекалибровку кнопок через пятикратный перезапуск Resetter через кнопку RESET
+- Переписал смену crum`a номера и его вывод на LCD на более универсальный
+- Переписал "быструю прошивку чипа" т.к. оперативки становится меньше и ардуино не справляется
+- Таймер сна поставил по умолчанию 4 минуты
+
 * Версия 01.04.2023
 - Появилась возможность обнулять чип  416RT это аналог AT24C16. 
 Данный чип используется в абсорбере MC-G02 для принтеров Canon PIXMA G1420, G2420, G2460, G3420, G3460, G640 и G540. 
@@ -341,6 +353,22 @@ const PROGMEM byte dump_ricoh_sp_4500he_407318[128] = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xE3, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
+// 24С01_02 // Ricoh SP 4500E 6K (407340) for Ricoh SP3600/3610/4510 (DN/SF) 
+//const PROGMEM char NOTE_SP_3600_3610_4510[] = { "SP 3600/10 4510" };
+const PROGMEM byte dump_ricoh_sp_4500e_407340[128] = {
+  0x23, 0x00, 0x01, 0x03, 0x3C, 0x01, 0x01, 0x00, 0x64, 0x00, 0x34, 0x30,
+  0x37, 0x33, 0x34, 0x30, 0x14, 0x07, 0x54, 0x4A, 0x08, 0x00, 0x07, 0x55,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x64, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x78, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
 
@@ -935,6 +963,81 @@ const PROGMEM byte dump_canon_g_series[2048] = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
   };
 
+/*********** =====> KATUSHA <===== *********/
+// HT24L02 //  Katusha KT240 for Katusha M240 CHIP 9k TK-240X
+const PROGMEM char NOTE_KATUSHA_TK240X[] = { "TK 240" };
+const PROGMEM byte dump_katusha_tk240x[256] = {
+  0x00, 0x00, 0x30, 0x39, 0x00, 0xD9, 0x41, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x23, 0x28,
+  0x00, 0x00, 0x00, 0x00, 0x54, 0x4B, 0x32, 0x34, 0x30, 0x58, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x54, 0x33, 0x37, 0x33, 0x31, 0x32, 0x30, 0x35, 0x32, 0x32, 0x38, 0x37, 
+  0x30, 0x36, 0x39, 0x30, 0x35, 0x39, 0x31, 0x31, 0x33, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+  0x00, 0x00, 0x00, 0x00, 0x4B, 0x41, 0x54, 0x55, 0x53, 0x48, 0x41, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+  0x00, 0x00, 0x00, 0x00, 0x41, 0x56, 0x4B, 0x2D, 0x30, 0x34, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
+// HT24L02 //  Katusha KT240 for Katusha M240
+const PROGMEM char NOTE_KATUSHA_DR240[] = { "DR 240" };
+const PROGMEM byte dump_katusha_dr240[256] = {
+  0x00, 0x00, 0x30, 0x39, 0x00, 0x00, 0x75, 0x30, 0x00, 0x00, 0x00, 0x00,
+  0x44, 0x52, 0x32, 0x34, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x45, 0x33, 0x42, 0x30,
+  0x33, 0x34, 0x37, 0x34, 0x31, 0x32, 0x37, 0x42, 0x31, 0x30, 0x39, 0x33,
+  0x35, 0x31, 0x31, 0x36, 0x37, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x4B, 0x41, 0x54, 0x55, 0x53, 0x48, 0x41, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x02, 0x93, 0x2E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0x4D, 0x41, 0x34, 0x31, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x70,
+  0x00, 0x00, 0x00, 0x37, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+  0xFF, 0xFF, 0xFF, 0xFF
+};
+
+// HT24L02 //  Katusha KT240 for Katusha M240 CHIP 6k TK-240A
+const PROGMEM char NOTE_KATUSHA_TK240A[] = { "TK 240" };
+const PROGMEM byte dump_katusha_tk240a[256] = {
+	0x00, 0x00, 0x30, 0x39, 0x00, 0x90, 0xD6, 0x20, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x17, 0x70, 0x00, 0x00, 0x00, 0x00, 0x54, 0x4B, 0x32, 0x34,
+	0x30, 0x41, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x54, 0x33, 0x42, 0x31, 0x38, 0x38, 0x33, 0x35,
+	0x37, 0x32, 0x38, 0x38, 0x42, 0x31, 0x31, 0x30, 0x30, 0x33, 0x31, 0x36,
+	0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x4B, 0x41, 0x54, 0x55, 0x53, 0x48, 0x41, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x41, 0x56, 0x4B, 0x2D,
+	0x30, 0x34, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00
+};
 
 /** НАЧАЛО **/
 // Подключаем библиотеку которая позволяет взаимодействовать с различными устройствами по интерфейсу I2C / TWI.
@@ -963,6 +1066,8 @@ LiquidCrystal lcd( 8, 9, 4, 5, 6, 7 );
 #define POWER_PIN A2
 // Пин для работы генератора случайных чисел
 #define RANDOM_PIN A3
+//
+// #define BUTTON_RESET __attribute__((section(".noinit")))
 
 
 // Адрес чипа (адрес динамический, меняется от чипа к чипу)
@@ -992,21 +1097,15 @@ unsigned long time_passed = 0;
 // Запоминаем количество нажатий на кнопку на кнопку select
 int global_button_select = 0; 
 
-// Значение кнопок для разных версий LCD Keypad shield. 
-// Настроить под себя если клавиатура плохо работает.
-// Указать значение БОЛЬШЕ чем у вас выдает кнопка
-                              // LCD Keypad shield v 1        // LCD Keypad shield v 1.1  (тестировал на 2х Keypad shield)   
-//int BUTTON_UP = 96;          // Пример у меня значение 132   // 96 или 100
-//int BUTTON_DOWN = 251;        // Пример у меня значение 334   // 251 или 255
-//int BUTTON_RIGHT = 0;        // Пример у меня значение 3     // 0 или 0
-//int BUTTON_LEFT = 403;        // Пример у меня значение 482   // 404 или 407
-//int BUTTON_SELECT = 637;      // Пример у меня значение 720   // 637 или 638
-
+// Переменные для кнопок
 int BUTTON_UP;
 int BUTTON_DOWN;
 int BUTTON_RIGHT;
 int BUTTON_LEFT;
 int BUTTON_SELECT;
+
+// Переменная для отслеживания кнопки BUTTON_RESET, при включении питания BUTTON_RESET = 0
+byte BUTTON_RESET __attribute__((section(".noinit")));
 
 // Кнопка была нажата или нет
 boolean BUTTON_BUSY = false;
@@ -1014,13 +1113,13 @@ boolean BUTTON_BUSY = false;
 // Храним время последнео нажатия любой кнопки кроме reset
 unsigned long global_timer_to_sleep = 0;
 
-
 // ** DEFINE ** //
 // => BRAND
 const PROGMEM char BRAND_RICOH[] = { "RICOH" };
 const PROGMEM char BRAND_SAMSUNG[] = { "SAMSUNG" };
 const PROGMEM char BRAND_XEROX[] = { "XEROX" };
 const PROGMEM char BRAND_CANON[] = { "CANON" };
+const PROGMEM char BRAND_KATUSHA[] = { "KATUSHA" };
 // => PINOUT
 const PROGMEM char PINOUT_GVCD[] = { "GVCD" };
 const PROGMEM char PINOUT_GVDC[] = { "GVDC" };
@@ -1040,7 +1139,9 @@ const PROGMEM char PAGE_6_4_K[] = { "6.4K" };
 const PROGMEM char PAGE_6_5_K[] = { "6.5K" };
 const PROGMEM char PAGE_7_K[] = { "7K" };
 const PROGMEM char PAGE_8_K[] = { "8K" };
+const PROGMEM char PAGE_9_K[] = { "9K" };
 const PROGMEM char PAGE_12_K[] = { "12K" };
+const PROGMEM char PAGE_30_K[] = { "30K" };
 // => CHIP_MEMORY
 const PROGMEM int CHIP_MEMORY_128 = 128;
 const PROGMEM int CHIP_MEMORY_256 = 256;
@@ -1067,7 +1168,7 @@ Struct_DB datebase[] = {
 
   { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVCD, NOTE_SP_100, dump_ricoh_sp_101e_407059, CHIP_MEMORY_128 , 0 },
   { BRAND_RICOH,    PAGE_2_6_K, PINOUT_GVCD, NOTE_SP_111, dump_ricoh_sp_110e_407441, CHIP_MEMORY_128 , 0 },
-  { BRAND_RICOH,    PAGE_1_5_K, PINOUT_GVCD, NOTE_SP_150, dump_ricoh_sp_150_408010, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_1_5_K, PINOUT_GVCD, NOTE_SP_150, dump_ricoh_sp_150_408010, CHIP_MEMORY_128 , 0 },  
   { BRAND_RICOH,    PAGE_2_6_K, PINOUT_GVCD, NOTE_SP_200_202_203_210_212, dump_ricoh_sp_200_hl_407262, CHIP_MEMORY_128 , 0 },
   { BRAND_RICOH,    PAGE_2_6_K, PINOUT_GVCD, NOTE_SP_201_204_211_213_220, dump_ricoh_sp_201_hl_111135,CHIP_MEMORY_128 , 0 },
   { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C220_B, dump_ricoh_sp_c220_221_222_240_406144_black, CHIP_MEMORY_128 , 0 },
@@ -1094,18 +1195,21 @@ Struct_DB datebase[] = {
   { BRAND_RICOH,    PAGE_6_4_K, PINOUT_GVCD, NOTE_SP_377, DUMP_SP_377, CHIP_MEMORY_128 , 0 },
   { BRAND_RICOH,    PAGE_5_K,   PINOUT_GVCD, NOTE_SP_400_450, dump_ricoh_sp_400_450, CHIP_MEMORY_128 , 0 },
   { BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_3400_3410_3500_3510, dump_ricoh_sp_3400he_406522, CHIP_MEMORY_128 , 0 },
-  { BRAND_RICOH,    PAGE_6_4_K, PINOUT_GVDC, NOTE_SP_3500_3510, dump_ricoh_sp_3500xe_406990, CHIP_MEMORY_128 , 0 },
+  { BRAND_RICOH,    PAGE_6_4_K, PINOUT_GVDC, NOTE_SP_3500_3510, dump_ricoh_sp_3500xe_406990, CHIP_MEMORY_128 , 0 },  
   { BRAND_RICOH,    PAGE_12_K,  PINOUT_GVCD, NOTE_SP_3600_3610_4510, dump_ricoh_sp_4500he_407318, CHIP_MEMORY_128, 3 },      // 3 функция с 23 начало
+  { BRAND_RICOH,    PAGE_6_K,   PINOUT_GVCD, NOTE_SP_3600_3610_4510, dump_ricoh_sp_4500e_407340, CHIP_MEMORY_128, 3 },       // 3 функция с 23 начало  
   { BRAND_SAMSUNG,  PAGE_3_K,   PINOUT_VDCG, NOTE_SCX_D4200, dump_samsung_scx_d4200a, CHIP_MEMORY_512 , 1 },                 // 1 функция с 63 начало
-  { BRAND_XEROX,    PAGE_2_K,   PINOUT_VDCG, NOTE_PE_220, dump_xerox_013R00621, CHIP_MEMORY_512, 1 },                              // 1 функция с 63 начало
-  { BRAND_XEROX,    PAGE_3_K,   PINOUT_VDCG, NOTE_WC_3119, dump_xerox_013R00625, CHIP_MEMORY_512 , 1 },                             // 1 функция с 63 начало
-  { BRAND_XEROX,    PAGE_8_K,   PINOUT_GCDV, NOTE_WC_4118, dump_xerox_006R01278, CHIP_MEMORY_512 , 2 },                             // 2 функция с 63 начало и 191
+  { BRAND_XEROX,    PAGE_2_K,   PINOUT_VDCG, NOTE_PE_220, dump_xerox_013R00621, CHIP_MEMORY_512, 1 },                        // 1 функция с 63 начало
+  { BRAND_XEROX,    PAGE_3_K,   PINOUT_VDCG, NOTE_WC_3119, dump_xerox_013R00625, CHIP_MEMORY_512 , 1 },                      // 1 функция с 63 начало
+  { BRAND_XEROX,    PAGE_8_K,   PINOUT_GCDV, NOTE_WC_4118, dump_xerox_006R01278, CHIP_MEMORY_512 , 2 },                      // 2 функция с 63 начало и 191
   { BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_Y, dump_ricoh_sp_360_408179_yellow, CHIP_MEMORY_128 , 0 },
   { BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_M, dump_ricoh_sp_360_408178_magenta, CHIP_MEMORY_128 , 0 },
   { BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_C, dump_ricoh_sp_360_408177_cyan, CHIP_MEMORY_128 , 0 },
   { BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_B, DUMP_SP_360_BLACK, CHIP_MEMORY_128 , 0 },         
-  { BRAND_CANON,    PAGE_5_K,   PINOUT_GDCV, NOTE_CANON_G_SERIES, dump_canon_g_series, CHIP_MEMORY_2048 , 0 }
-
+  { BRAND_CANON,    PAGE_5_K,   PINOUT_GDCV, NOTE_CANON_G_SERIES, dump_canon_g_series, CHIP_MEMORY_2048 , 0 },  
+  { BRAND_KATUSHA,  PAGE_6_K,   PINOUT_GVDC, NOTE_KATUSHA_TK240A, dump_katusha_tk240a, CHIP_MEMORY_256 , 4 },               // 4 функция
+  { BRAND_KATUSHA,  PAGE_9_K,   PINOUT_GVDC, NOTE_KATUSHA_TK240X, dump_katusha_tk240x, CHIP_MEMORY_256 , 4 },               // 4 функция  
+  { BRAND_KATUSHA,  PAGE_30_K,  PINOUT_GVDC, NOTE_KATUSHA_DR240, dump_katusha_dr240, CHIP_MEMORY_256 , 5 }                  // 5 функция
 
   // Последняя строка без запятой !!!
   // { "", "", "", NOTE, sizeof(), 0 }, // шаблон 
@@ -1157,8 +1261,7 @@ void setup()
 
   // Подсчитываем сколько чипов в Базе 
   global_all_chip_in_database = ( sizeof(datebase) / sizeof(Struct_DB) ) - 1 ; 
-  //Serial.print("Rows in DB => ");
-  //Serial.println( global_all_chip_in_database );  
+  //Serial.print("Rows in DB => "); Serial.println( global_all_chip_in_database );  
 
   // Очистка EEPROM
   // clear_value_button();
@@ -1168,6 +1271,9 @@ void setup()
 
   // Устанавливаем глобальные переменные и показываем первый чип на экране
   set_global_variables(global_id);
+
+  // Запуск калибровки кнопок если нажали reset 5 раз  
+  calibration_button_via_button_reset();
 }
 
 
@@ -1387,7 +1493,18 @@ void loop()
   time_to_sleep();
 }
 
-/****************************** ЗАПИСЬ ЧТЕНИЕ ОБНУЛЕНИЕ КАЛИБРОВКА В EEPROM КНОПОК LCD KEYPAD SHIELD ******************************/
+/****************************** ЗАПИСЬ-ЧТЕНИЕ-ОБНУЛЕНИЕ-КАЛИБРОВКА В EEPROM КНОПОК LCD KEYPAD SHIELD ******************************/
+
+// Запуск калибровки кнопок через кнопку RESET
+void calibration_button_via_button_reset()
+{
+  // Если значение кнопки RESET больше 5 то обнуляем переменную, иначе увеличиваем счетчик
+  if (BUTTON_RESET > 5) { BUTTON_RESET = 0; } else { ++BUTTON_RESET; }
+  // Если RESET нажали 5 раз то запускаем перекалибровку кнопок и обуляем счетчик RESET 
+  if (BUTTON_RESET == 5) { Serial.println(F("START CALIBRATION BUTTON")); calibration_button(); BUTTON_RESET = 0; }
+  Serial.print(F("BUTTON_RESET COUNT => ")); Serial.println(BUTTON_RESET);
+}
+
 // Считываем из EEPROM
 void read_value_button()
 {
@@ -1470,8 +1587,8 @@ bool purity_eeprom_check()
     word( EEPROM.read(0), EEPROM.read(1) ) == 65535 || 
     word( EEPROM.read(2), EEPROM.read(3) ) == 65535 || 
     word( EEPROM.read(4), EEPROM.read(5) ) == 65535 ||
-    word( EEPROM.read(6), EEPROM.read(7) )== 65535 || 
-    word( EEPROM.read(8), EEPROM.read(9) )== 65535
+    word( EEPROM.read(6), EEPROM.read(7) ) == 65535 || 
+    word( EEPROM.read(8), EEPROM.read(9) ) == 65535
     ) { return true; } else { return false; }   
 }
 
@@ -1586,27 +1703,86 @@ void power_off_for_chip()
   digitalWrite(POWER_PIN, LOW); // Выключаем питания на A2 пине
 }
 
-/****************************** ПОИСК ЧИПА НА ШИНЕ I2C ВЕРСИЯ 3 ******************************/
+/****************************** ПОИСК ЧИПА НА ШИНЕ I2C ВЕРСИЯ 3 МОДИФИКАЦИЯ 2024-04-17 ******************************/
 // Возваращаем 1 если все ок и 0 если все плохо
 bool search_address_chip_3() 
 {
-    byte error;
-    byte count_device = 0;
+    byte DeviceStatus;
+    byte TotalDevicesFound = 0;
+    //Serial.println(F("Scanning for devices...please wait")); Serial.println();
 
     // Сканируем шину I2C
-    for (byte address = 0; address < 127; address++)
+    for (byte address = 0; address <= 0x7F; address++)
+    {
+      DeviceStatus = 0;
+      // I2c._start() возвращает 0 если все хорошо, 1 если превышено время ожидания шины, 2 и более другие ошибки
+      DeviceStatus = I2c._start();
+      if (!DeviceStatus)
+      {
+        // I2c._sendAddress возвращает 0 если все хорошо, 1 если првышено время ожидания шины, 2 и более другие ошибки.
+        // SLA_W Узнаем можем ли писать в микросхему
+        DeviceStatus = I2c._sendAddress(SLA_W(address));
+      }
+      if (DeviceStatus)
+      {
+        if (DeviceStatus == 1)
+        {
+          lcd.clear(); 
+          lcd.print(F("MAYBE PROBLEM"));  
+          lcd.setCursor(0,1); 
+          lcd.print(F("WITH BUS I2C"));
+          Serial.println(F("MAYBE PROBLEM WITH BUS I2C")); 
+          delay (2000);
+          return false;
+        }
+      }
+      else
+      { 
+        //Serial.print(F("Found device at address - 0x")); Serial.println(address, HEX);
+        // Ищем первый адрес с подходящими параметрами, их может быть больше одного а нам нужен лишь первый
+        if (TotalDevicesFound == 0)
+        {
+          // Сохраняем адрес чипа в памяти
+          global_address_eeprom = address;
+          //
+          //Serial.print(F("Save address device - 0x")); Serial.println(address, HEX); 
+        }
+        // Считаем количество подходящих адресов
+        TotalDevicesFound++;
+      }
+      // Отпускаем шину
+      I2c._stop();
+    }
+
+    // Если устройст не найдено
+    if (!TotalDevicesFound)
+    {
+      lcd.clear(); 
+      lcd.print(F("BAD CONTACT OR"));  
+      lcd.setCursor(0,1); 
+      lcd.print(F("NOT CHIP"));
+      Serial.println(F("BAD CONTACT OR NOT CHIP")); 
+      delay (2000);
+      return false;
+    }
+  /*
+    byte error;
+    byte count_device = 0;
+    // Сканируем шину I2C
+    for (byte address = 0; address <= 127; address++)
     {
        // Переменная для ошибок 0 по умолчанию
        error = 0; 
        // I2c._start() возвращает 0 если все хорошо, 1 если првышено время ожидания шины, 2 и более другие ошибки
        error = I2c._start();
+       //I2c.scan();
        // ... 
        if ( error == 0 ) 
         {           
           // I2c._sendAddress возвращает 0 если все хорошо, 1 если првышено время ожидания шины, 2 и более другие ошибки.
           // В конце адреса надо указывать бит чтения << 1 или записи << 0
           error = I2c._sendAddress(address << 1);
-          //Serial.print("Adress 0x"); Serial.println(address);
+          Serial.print("Adress 0x"); Serial.println(address, HEX);
           // Если ошибок нет и нашли адрес то ...
           if ( error == 0)
           {
@@ -1617,9 +1793,10 @@ bool search_address_chip_3()
               
               // Ищем первый адрес с подходящими параметрами, их может быть больше 1 нам нужен лишь 1  
               if (eeprom.readByte_24C04_16(0) != 0 && count_device == 0) 
+              //if (eeprom.readByte_24C01_02(0) != 0 && count_device == 0)              
               {        
                 global_address_eeprom = address; // Сохраняем адрес чипа в памяти
-                //Serial.print(F("Address chip = 0x")); Serial.println(address,HEX);  // Показываем адрес на котором сидит чип
+                Serial.print(F("Address chip = 0x")); Serial.println(address);  // Показываем адрес на котором сидит чип
                 // Считаем сколько нашли чипов
                 count_device = count_device + 1;
               }         
@@ -1646,6 +1823,7 @@ bool search_address_chip_3()
     {         
       return true;  
     }
+    */
 }
 
 /****************************** СКОРОСТНАЯ ПРОШИВКА ЧИПОВ УНИВЕРСАЛЬНАЯ БИБЛИОТЕКА ******************************/
@@ -1659,46 +1837,53 @@ void firmware()
   // Подключаем библиотеку и задем адрес и размер чипа
   Eeprom24C01_16 eeprom(global_address_eeprom); 
   eeprom.initialize(); 
-  
-  word address = 0; // Адрес начало дампа
-  int count = global_size_dump; // байт в чипе
 
-  // Если дамп меньше 1024 байт то создаем массив иначе дамп забьет всю оперативную память ардуино
-  if (global_size_dump <= 1024)
-  {
-    byte array_bytes[count];  // Создаем массив с нужным размером 
-    for (int i = 0; i < count; i++) 
-    {    
-      array_bytes[i] = pgm_read_byte(&global_name_dump[i]); // Заполняем массив
-      //Serial.println(pgm_read_byte(&global_name_dump[i]), HEX);
-    }
-    
-    // Записываем в чип
-    // Если в чипе до 256 байт то writeBytes_24C01_02 иначе writeBytes_24C04_16
-    if (global_size_dump <= 256)
-    {
-      eeprom.writeBytes_24C01_02(address, count, array_bytes);     
-    }
-    else
-    {
-      eeprom.writeBytes_24C04_16(address, count, array_bytes);      
-    }
-  }
-  else // Если дамп больше 1024 байт то записываем по байтно чтобы не переполнить оперативную память ардуино
-  {
-    for (int x = 0; x < global_size_dump; x++)
-    {
-      eeprom.writeByte_24C04_16(x, pgm_read_byte(&global_name_dump[x]) ); 
+  // Занимаемый размер массива в оперативке 2 4 8 16 32 64 128 байт
+  // Максимум 128 байт т.к. оперативку надо экономить
+  byte sizeArray = 64;  
+  // количество циклов
+  byte cycl = global_size_dump / sizeArray; 
+  // старт цикла
+  for (byte x = 0; x < cycl; x++)
+  {      
+      // создаем пустой массив байт
+      byte array_bytes[sizeArray];  
+      // Из памяти ардуино считываем часть дампа в массив
+      for (byte y = 0; y < sizeArray; y++)
+      {
+          word numByte = y + (x * sizeArray);
+          array_bytes[y] = pgm_read_byte(&global_name_dump[numByte]);     
+      }      
+      // Записываем массив в чип
+      if ( (global_size_dump == 128) || (global_size_dump == 256) ) { eeprom.writeBytes_24C01_02(sizeArray * x, sizeArray, array_bytes); }
+      if ( (global_size_dump == 512) || (global_size_dump > 512) )  { eeprom.writeBytes_24C04_16(sizeArray * x, sizeArray, array_bytes); }    
       // Пауза для записи ячейки памяти
-      delay(10);  
-    }
+      delay(10);           
+
+      // Показываем массив
+      // Serial.print(F("String => ")); Serial.print(x); Serial.print(F(" "));
+      // for (byte i = 0; i < sizeArray; i++)
+      // {
+      //     Serial.print(array_bytes[i], HEX);
+      //     Serial.print(F(" "));
+      // }
+      // Serial.println(F(" "));
+
+      //Чистим массив
+      //array_bytes[0] = '\0';
   }
-  
-  //Serial.println(address); Serial.println(count);
-    
+
+  // Медленная прошивка (прошивает по байтно) работает всегда но долго
+  // for (int x = 0; x < global_size_dump; x++)
+  // {
+  //   eeprom.writeByte_24C04_16(x, pgm_read_byte(&global_name_dump[x]) ); 
+  //   // Пауза для записи ячейки памяти
+  //   delay(10);  
+  // }
+
+  // Сообщение о прошивки чипа 
   lcd.print(F("DONE !!!"));
   lcd.noBlink(); // отключаем мигание курсора
-
   Serial.println(F("FIRMWARE GOOD"));
   
   // Проверка чипа
@@ -1706,7 +1891,10 @@ void firmware()
 
   //Смена серийного номера
   change_crum_select(); 
-     
+
+  
+
+
 }
  
 
@@ -1766,7 +1954,7 @@ void verification_dump()
   }
 }
 
-/*************************************  ГЕНЕРАТОР СЕРИЙНОГО НОМЕРА ВЕРСИЯ 3 *************************************/
+/*************************************  ГЕНЕРАТОР СЕРИЙНОГО НОМЕРА МОДИФИКАЦИЯ 2024-05-17  *************************************/
 // Выбор какая функция смены серийного номера заработает
 void change_crum_select()
 {  
@@ -1775,41 +1963,54 @@ void change_crum_select()
     case 0:
       break;
     case 1: 
-      change_crum_one_samsung_xerox();
+      // SAMSUNG XEROX где 1 серийник 
+      // Меняем байты серийника и показываем его
+      change_crum_universal(56, 63); // меняем с 56 байта по 63 байт
+      print_sn_on_lcd_universal(53, 63);
       break;
     case 2:
+      // SAMSUNG XEROX где 2 серийника
       change_crum_two_xerox();
       break;
     case 3:
-      change_crum_ricoh();
+      // RICOH SP_3600_3610_4510 
+      // Меняем байты серийника и показываем его
+      change_crum_universal(22, 23); // меняем с 22 байта по 23 байт
+      print_sn_on_lcd_universal(22, 23);
+      break;
+    case 4:
+      // KATUSHA TK 240 
+      // Меняем байты серийника и показываем его
+      change_crum_universal(60, 73); // меняем с 60 байта по 73 байт
+      print_sn_on_lcd_universal(60, 73);
+      break;
+    case 5:
+      // KATUSHA DR 240 
+      // Меняем байты серийника и показываем его
+      change_crum_universal(52, 65); // меняем с 42 байта по 65 байт   
+      print_sn_on_lcd_universal(52, 65);
       break;
     default:
       break;
   }
 }
 
-
-// Генератора для Samsung или Xerox где надо сменить 1 номер 
-// Младший разряд находится в 63 байте
-// ...
-void change_crum_one_samsung_xerox()
-{  
+// Генератор crum иниверсальный
+// указывается с какого байда и по какой байт поменять цифры
+void change_crum_universal(int From, int To)
+{
+  // Инициализация eeprom 
   Eeprom24C01_16 eeprom(global_address_eeprom);
-  eeprom.initialize(); 
-   
-  int temp_sn_one = 63; // Получаем номер байта серийника
-  for (int i = 6; i > 0; i--) // меняем 6 младших разрядов серийника
+  eeprom.initialize();  
+  // Меняем байты от (FROM) и до (TO)
+  for (int i = From; i <= To; i++)
   {   
    int randomNum = random(48, 57); // ANSI (48-58) а в DEC (0-9)
-   eeprom.writeByte_24C04_16(temp_sn_one, randomNum); // Записываем значение в адрес
+   eeprom.writeByte_24C04_16(i, randomNum); // Записываем значение в адрес
    delay(10); // пауза для записи в ячейку EEPROM 
-   temp_sn_one--; // переход к старшему разряду
   }
-  // Показываем серийный номер на lcd
-  print_sn_on_lcd();
-
-  Serial.println(F("CHANGE ONE CRUM GOOD"));
 }
+
 
 // Генератора для Samsung или Xerox где надо сменить 2 номерa 
 // Младший разряд находится в 63 байте и в 191
@@ -1833,61 +2034,34 @@ void change_crum_two_xerox()
   }
   
   // Показываем серийный номер на lcd
-  print_sn_on_lcd();
-
+  print_sn_on_lcd_universal(53, 63);
+  //
   Serial.println(F("CHANGE TWO CRUM GOOD"));
 }
 
-// Генератора для Ricoh где надо сменить 1 номер
-// Младший разряд находится в 23 байте
-// ...
-void change_crum_ricoh()
-{
-  Eeprom24C01_16 eeprom(global_address_eeprom);
-  eeprom.initialize(); 
-   
-  int temp_sn_one = 23; // Получаем номер байта серийника
-  for (int i = 2; i > 0; i--) // меняем 2 младших разрядов серийника
-  {   
-   int randomNum = random(48, 57); // ANSI (48-58) а в DEC (0-9)
-   eeprom.writeByte_24C01_02(temp_sn_one, randomNum); // Записываем значение в адрес
-   delay(10); // пауза для записи в ячейку EEPROM 
-   temp_sn_one--; // переход к старшему разряду
-   //Serial.println(randomNum);
-  }
-  
-    Serial.println(F("CHANGE RICOH CRUM GOOD"));
-}
   
 /************************************* ВЫВОД СЕРИЙНОГО НОМЕРА НА LCD *************************************/
-void print_sn_on_lcd()
+// Показать CRUM от (FROM) байта до (TO) байта
+void print_sn_on_lcd_universal(int From, int To) 
 {  
+  // Инициализация
   Eeprom24C01_16 eeprom(global_address_eeprom);
   eeprom.initialize(); 
-
+  // Показываем на дисплее надпись NEW CRUM 
   lcd.clear();
-  lcd.print(F("SERIAL NUMBER"));
-  lcd.setCursor(0,1);
-  lcd.print(F("CRUM-"));
-  lcd.setCursor(5,1);
-  //
-  //Serial.println(F("SERIAL NUMBER")); 
-  Serial.print(F("CRUM-")); 
-  //
-  //int global_number_byte_end_of_sn = 63;
-  //int temp_start = global_number_byte_end_of_sn - 10; 
-  //int temp_end = global_number_byte_end_of_sn + 1;
-
-  // младший разряд crum 63
-  for(int i = 63 - 10; i < 63 + 1; i++)  
+  lcd.print(F("NEW CRUM")); Serial.print(F("NEW CRUM "));
+  lcd.setCursor(0,1); 
+  // Считываем байты от и до
+  for(int i = From; i <= To; i++)  
   {
     char c = (char)eeprom.readByte_24C04_16(i); // получаем ascii из hex 
-    lcd.print(c);
-    Serial.print(c);
+    lcd.print(c); Serial.print(c);
   }
-  Serial.println(" ");
+  Serial.println(" ");  
   // Задержка для просмотра номера
-  delay(1000);
+  delay(1500);
+  // Сообщаем что все ок
+  Serial.println(F("CHANGE CRUM GOOD")); 
 }
 
 /************************************* ПОКАЗ ДАМПА НА LCD *************************************/
@@ -2057,9 +2231,9 @@ void total_pages_on_display_ricoh()
 /************************************* ОТПРАВЛЯЕМ В СОН АРДУИНО *************************************/
 void time_to_sleep()
 {
-  // Не забудьте выпаять светодиоды 
-  // Время до сна 120 сек
-  unsigned long timer = 120000;
+  // Не забудьте выпаять светодиоды для экономии батарейки
+  // Время до сна 240 сек = 4 мин
+  unsigned long timer = 240000;
   // Секундомер
   unsigned long stopwatch = millis() - global_timer_to_sleep; 
   //Serial.println(stopwatch);
