@@ -110,4 +110,4 @@
 
 Фото обнулятора:
 
-<img src="https://github.com/Galavarez/Chip_Resetter/blob/master/Photos%20of%20the%20device/newFotoDevice.jpg" width="400" height="300"/>
+<img src="https://github.com/Galavarez/Chip_Resetter/blob/master/Photos%20of%20the%20device/newFotoDevice.jpg" width="400" height="400"/>
