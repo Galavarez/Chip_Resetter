@@ -33,8 +33,8 @@
 
 **Как добавить новый чип**
 
-1. Инструкция тут https://github.com/Galavarez/Chip_Resetter/wiki/add_chip
-2. Так же появилась программа Easy Add Dump для более удобного создания дампа для обнулятора.
+1. Первый и долгий способ добавить дамп  https://github.com/Galavarez/Chip_Resetter/wiki/add_chip
+2. Второй и более простой через Easy Add Dump https://github.com/Galavarez/Chip_Resetter/tree/master/EasyAddDump
 
 **Дополнительные возможности:**
 1. Автокалибровка кнопок LCD keypad shield.
