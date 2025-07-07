@@ -1,5 +1,9 @@
 /*  
 Auto Resetter wthiout sd card by Galavarez
+* Версия 07.07.2025
+- Исправил баг с резетом, который просил калибровку после 5 нажатий, если до этого не выключили питание обнулятора
+- Переписал поиск чипа (search_address_chip_3) для лучшего понимания кода и его упрощения
+ 
 * Версия 23.06.2025
 - Добавил дамп от Катюши TK 133
 
@@ -1681,6 +1685,9 @@ void loop()
 
   // Переводим в спящий режим ардуино
   //time_to_sleep();
+  
+  // Если подождали больше 20 сек то обнуляем счетчик калибровки, чтобы не срабатывала ложная калибровка кнопок
+  if (millis() > 20000) { BUTTON_RESET = 0; }
 }
 
 /****************************** ЗАПИСЬ-ЧТЕНИЕ-ОБНУЛЕНИЕ-КАЛИБРОВКА В EEPROM КНОПОК LCD KEYPAD SHIELD ******************************/
@@ -1692,6 +1699,7 @@ void calibration_button_via_button_reset()
   if (BUTTON_RESET > 5) { BUTTON_RESET = 0; } else { ++BUTTON_RESET; }
   // Если RESET нажали 5 раз то запускаем перекалибровку кнопок и обуляем счетчик RESET 
   if (BUTTON_RESET == 5) { Serial.println(F("START CALIBRATION BUTTON")); BUTTON_RESET = 0; calibration_button(); }
+  // Показываем состояние BUTTON_RESET COUNT 
   Serial.print(F("BUTTON_RESET COUNT => ")); Serial.println(BUTTON_RESET);
 }
 
@@ -1896,7 +1904,82 @@ void power_off_for_chip()
   digitalWrite(POWER_PIN, LOW); // Выключаем питания на A2 пине
 }
 
+/****************************** ПОИСК ЧИПА НА ШИНЕ I2C ВЕРСИЯ 3 МОДИФИКАЦИЯ 2025-07-07 ******************************/
+// Возвращаем TRUE (1) eсли все ок и FALSE (0) если плохо
+bool search_address_chip_3() 
+{
+  byte DeviceStatus;              // 0 это хорошо
+  byte TotalDevicesFound = 0;     // 0 это хорошо
+  //Serial.println(F("Scanning for devices...please wait")); Serial.println();
+  
+  // Сканируем шину I2C
+  for (byte address = 0; address <= 0x7F; address++) // 0x7F это число 127
+  {
+    // Цикл начинаем со значения по умолчанию 0, значит нет ошибок
+    DeviceStatus = 0;
+    
+    // I2c._start()  Возвращает:
+    // == 0 ошибок нет
+    // == 1 превышено время ожидания шины (timeOut) 
+    DeviceStatus = I2c._start();
+    
+    if (DeviceStatus == 0)
+    {    
+      // I2c._sendAddress  Возвращает:
+      // == 0 ошибок нет
+      // == 1 превышено время ожидания шины (timeOut)   
+      // SLA_W(address) Узнаем можем ли писать в микросхему  
+
+      // Если нашли подходящий адрес с возможностью записи в него
+      if ( I2c._sendAddress(SLA_W(address)) == 0)
+      {
+        // Сохраняем адрес
+        global_address_eeprom = address;
+        // Увеличиваем счетчик подходящих адресов
+        TotalDevicesFound++;              
+      } 
+      else // Если записать нельзя то продолжаем поиск   
+      { 
+        // Отпускаем шину
+        I2c._stop();
+        
+        // Запускаем следующий цикл
+        continue;      
+      } 
+    }  
+      
+    // Обработка ошибок 
+    if (DeviceStatus >= 1)
+    {
+      lcd.clear(); 
+      lcd.print(F("MAYBE PROBLEM"));  
+      lcd.setCursor(0,1); 
+      lcd.print(F("WITH BUS I2C"));
+      Serial.println(F("MAYBE PROBLEM WITH BUS I2C")); 
+      delay (2000);
+      return false;
+    }      
+  }
+
+  // Если устройст не найдено то возможно нет чипа или плохой контакт
+  if (TotalDevicesFound == 0)  
+  {
+    lcd.clear(); 
+    lcd.print(F("BAD CONTACT OR"));  
+    lcd.setCursor(0,1); 
+    lcd.print(F("NOT CHIP"));
+    Serial.println(F("BAD CONTACT OR NOT CHIP")); 
+    delay (2000);
+    return false;
+  }
+  else
+  {
+    return true;
+  }
+    
+}
 /****************************** ПОИСК ЧИПА НА ШИНЕ I2C ВЕРСИЯ 3 МОДИФИКАЦИЯ 2024-04-17 ******************************/
+/*
 // Возваращаем 1 если все ок и 0 если все плохо
 bool search_address_chip_3() 
 {
@@ -1958,7 +2041,12 @@ bool search_address_chip_3()
       delay (2000);
       return false;
     }
-  /*
+}
+
+*/
+
+/*
+ * Старый код
     byte error;
     byte count_device = 0;
     // Сканируем шину I2C
@@ -2017,8 +2105,6 @@ bool search_address_chip_3()
       return true;  
     }
     */
-}
-
 /****************************** СКОРОСТНАЯ ПРОШИВКА ЧИПОВ УНИВЕРСАЛЬНАЯ БИБЛИОТЕКА ******************************/
 void firmware()
 {
@@ -2026,7 +2112,7 @@ void firmware()
   lcd.print(F("FIRMWARE CHIP")); 
   lcd.setCursor(0, 1);      
   lcd.blink(); // влючаем мигание курсора для информативности
- 
+  
   // Подключаем библиотеку и задем адрес и размер чипа
   Eeprom24C01_16 eeprom(global_address_eeprom); 
   eeprom.initialize(); 
@@ -2046,13 +2132,14 @@ void firmware()
       {
           word numByte = y + (x * sizeArray);
           array_bytes[y] = pgm_read_byte(&global_name_dump[numByte]);     
-      }      
+      }
+     
       // Записываем массив в чип
       if ( (global_size_dump == 128) || (global_size_dump == 256) ) { eeprom.writeBytes_24C01_02(sizeArray * x, sizeArray, array_bytes); }
       if ( (global_size_dump == 512) || (global_size_dump > 512) )  { eeprom.writeBytes_24C04_16(sizeArray * x, sizeArray, array_bytes); }    
       // Пауза для записи ячейки памяти
       delay(10);           
-
+      
       // Показываем массив
       // Serial.print(F("String => ")); Serial.print(x); Serial.print(F(" "));
       // for (byte i = 0; i < sizeArray; i++)
@@ -2065,7 +2152,7 @@ void firmware()
       //Чистим массив
       //array_bytes[0] = '\0';
   }
-
+    
   // Медленная прошивка (прошивает по байтно) работает всегда но долго
   // for (int x = 0; x < global_size_dump; x++)
   // {
@@ -2084,10 +2171,6 @@ void firmware()
 
   //Смена серийного номера
   change_crum_select(); 
-
-  
-
-
 }
  
 
