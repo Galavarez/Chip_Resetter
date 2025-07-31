@@ -1,5 +1,8 @@
 /*  
 Auto Resetter wthiout sd card by Galavarez
+* Версия 31.07.2025
+- Исправил баг с записью чипов которые больше 256 байт. Баг был в поиске чипа (search_address_chip_3).
+ 
 * Версия 12.07.2025
 - Добавил дамп THM130 на 0.7К и на 3К, а так же дамп на драм PCM130 на 12К. Спасибо за них Владимиру Е.
 
@@ -1305,7 +1308,6 @@ LiquidCrystal lcd( 8, 9, 4, 5, 6, 7 );
 //
 // #define BUTTON_RESET __attribute__((section(".noinit")))
 
-
 // Адрес чипа (адрес динамический, меняется от чипа к чипу)
 byte global_address_eeprom;
 
@@ -1412,24 +1414,24 @@ Struct_DB datebase[] = {
   { BRAND_RICOH,    PAGE_1_5_K, PINOUT_GVCD, NOTE_SP_150, dump_ricoh_sp_150_408010, CHIP_MEMORY_128 , 0 },  
   { BRAND_RICOH,    PAGE_2_6_K, PINOUT_GVCD, NOTE_SP_200_202_203_210_212, dump_ricoh_sp_200_hl_407262, CHIP_MEMORY_128 , 0 },
   { BRAND_RICOH,    PAGE_2_6_K, PINOUT_GVCD, NOTE_SP_201_204_211_213_220, dump_ricoh_sp_201_hl_111135,CHIP_MEMORY_128 , 0 },
-  { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C220_B, dump_ricoh_sp_c220_221_222_240_406144_black, CHIP_MEMORY_128 , 0 },
-  { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C220_C, dump_ricoh_sp_c220_221_222_240_406145_cyan, CHIP_MEMORY_128 , 0 },
-  { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C220_M, dump_ricoh_sp_c220_221_222_240_406146_magenta, CHIP_MEMORY_128 , 0 },
-  { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C220_Y, dump_ricoh_sp_c220_221_222_240_406147_yellow, CHIP_MEMORY_128 , 0 },
-  { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C250_260_B, dump_ricoh_sp_c250_c260_407543_black, CHIP_MEMORY_128 , 0 },
-  { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C250_260_M, dump_ricoh_sp_c250_c260_407545_magenta, CHIP_MEMORY_128 , 0 },
-  { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C250_260_Y, dump_ricoh_sp_c250_c260_407546_yellow, CHIP_MEMORY_128 , 0 },
-  { BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C250_260_C, dump_ricoh_sp_c250_c260_407544_cyan, CHIP_MEMORY_128 , 0 },
-  { BRAND_RICOH,    PAGE_6_5_K, PINOUT_GVDC, NOTE_SP_C252_B, dump_ricoh_sp_c252_407716_black, CHIP_MEMORY_128 , 0 },
-  { BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_C252_C, dump_ricoh_sp_c252_407717_cyan, CHIP_MEMORY_128 , 0 },
-  { BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_C252_M, dump_ricoh_sp_c252_407718_magenta, CHIP_MEMORY_128 , 0 },
-  { BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_C252_Y, dump_ricoh_sp_c252_407719_yellow, CHIP_MEMORY_128 , 0 },
+  //{ BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C220_B, dump_ricoh_sp_c220_221_222_240_406144_black, CHIP_MEMORY_128 , 0 },
+  //{ BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C220_C, dump_ricoh_sp_c220_221_222_240_406145_cyan, CHIP_MEMORY_128 , 0 },
+  //{ BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C220_M, dump_ricoh_sp_c220_221_222_240_406146_magenta, CHIP_MEMORY_128 , 0 },
+  //{ BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C220_Y, dump_ricoh_sp_c220_221_222_240_406147_yellow, CHIP_MEMORY_128 , 0 },
+  //{ BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C250_260_B, dump_ricoh_sp_c250_c260_407543_black, CHIP_MEMORY_128 , 0 },
+  //{ BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C250_260_M, dump_ricoh_sp_c250_c260_407545_magenta, CHIP_MEMORY_128 , 0 },
+  //{ BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C250_260_Y, dump_ricoh_sp_c250_c260_407546_yellow, CHIP_MEMORY_128 , 0 },
+  //{ BRAND_RICOH,    PAGE_2_K,   PINOUT_GVDC, NOTE_SP_C250_260_C, dump_ricoh_sp_c250_c260_407544_cyan, CHIP_MEMORY_128 , 0 },
+  //{ BRAND_RICOH,    PAGE_6_5_K, PINOUT_GVDC, NOTE_SP_C252_B, dump_ricoh_sp_c252_407716_black, CHIP_MEMORY_128 , 0 },
+  //{ BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_C252_C, dump_ricoh_sp_c252_407717_cyan, CHIP_MEMORY_128 , 0 },
+  //{ BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_C252_M, dump_ricoh_sp_c252_407718_magenta, CHIP_MEMORY_128 , 0 },
+  //{ BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_C252_Y, dump_ricoh_sp_c252_407719_yellow, CHIP_MEMORY_128 , 0 },
   { BRAND_RICOH,    PAGE_2_6_K, PINOUT_GVCD, NOTE_SP_277, dump_ricoh_sp_277_408160, CHIP_MEMORY_128 , 0 },
   { BRAND_RICOH,    PAGE_1_5_K, PINOUT_GVDC, NOTE_SP_300, dump_ricoh_sp_300_406956, CHIP_MEMORY_128 , 0 },
-  { BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_310_B, dump_ricoh_sp_310_406479_black, CHIP_MEMORY_128 , 0 },
-  { BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_310_Y, dump_ricoh_sp_310_406482_yellow, CHIP_MEMORY_128 , 0 },
-  { BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_310_M, dump_ricoh_sp_310_122728_magenta, CHIP_MEMORY_128 , 0 },
-  { BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_310_C, dump_ricoh_sp_310_122700_cyan, CHIP_MEMORY_128 , 0 },
+  //{ BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_310_B, dump_ricoh_sp_310_406479_black, CHIP_MEMORY_128 , 0 },
+  //{ BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_310_Y, dump_ricoh_sp_310_406482_yellow, CHIP_MEMORY_128 , 0 },
+  //{ BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_310_M, dump_ricoh_sp_310_122728_magenta, CHIP_MEMORY_128 , 0 },
+  //{ BRAND_RICOH,    PAGE_6_K,   PINOUT_GVDC, NOTE_SP_310_C, dump_ricoh_sp_310_122700_cyan, CHIP_MEMORY_128 , 0 },
   { BRAND_RICOH,    PAGE_3_5_K, PINOUT_GVCD, NOTE_SP_311_325_NORMAL, dump_ricoh_sp_311_407246, CHIP_MEMORY_128 , 0 },
   { BRAND_RICOH,    PAGE_6_4_K, PINOUT_GVCD, NOTE_SP_311_325_LARGE, dump_ricoh_sp_311_821242, CHIP_MEMORY_128 , 0 },
   { BRAND_RICOH,    PAGE_7_K,   PINOUT_GVCD, NOTE_SP_330, dump_ricoh_sp_330_408283, CHIP_MEMORY_128 , 0 },
@@ -1440,21 +1442,21 @@ Struct_DB datebase[] = {
   { BRAND_RICOH,    PAGE_12_K,  PINOUT_GVCD, NOTE_SP_3600_3610_4510, dump_ricoh_sp_4500he_407318, CHIP_MEMORY_128, 3 },      // 3 функция с 23 начало
   { BRAND_RICOH,    PAGE_6_K,   PINOUT_GVCD, NOTE_SP_3600_3610_4510, dump_ricoh_sp_4500e_407340, CHIP_MEMORY_128, 3 },       // 3 функция с 23 начало  
   { BRAND_SAMSUNG,  PAGE_3_K,   PINOUT_VDCG, NOTE_SCX_D4200, dump_samsung_scx_d4200a, CHIP_MEMORY_512 , 1 },                 // 1 функция с 63 начало
-  { BRAND_XEROX,    PAGE_2_K,   PINOUT_VDCG, NOTE_PE_220, dump_xerox_013R00621, CHIP_MEMORY_512, 1 },                        // 1 функция с 63 начало
+  //{ BRAND_XEROX,    PAGE_2_K,   PINOUT_VDCG, NOTE_PE_220, dump_xerox_013R00621, CHIP_MEMORY_512, 1 },                        // 1 функция с 63 начало
   { BRAND_XEROX,    PAGE_3_K,   PINOUT_VDCG, NOTE_WC_3119, dump_xerox_013R00625, CHIP_MEMORY_512 , 1 },                      // 1 функция с 63 начало
-  { BRAND_XEROX,    PAGE_8_K,   PINOUT_GCDV, NOTE_WC_4118, dump_xerox_006R01278, CHIP_MEMORY_512 , 2 },                      // 2 функция с 63 начало и 191
-  { BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_Y, dump_ricoh_sp_360_408179_yellow, CHIP_MEMORY_128 , 0 },
-  { BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_M, dump_ricoh_sp_360_408178_magenta, CHIP_MEMORY_128 , 0 },
-  { BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_C, dump_ricoh_sp_360_408177_cyan, CHIP_MEMORY_128 , 0 },
-  { BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_B, DUMP_SP_360_BLACK, CHIP_MEMORY_128 , 0 },         
+  //{ BRAND_XEROX,    PAGE_8_K,   PINOUT_GCDV, NOTE_WC_4118, dump_xerox_006R01278, CHIP_MEMORY_512 , 2 },                      // 2 функция с 63 начало и 191
+  //{ BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_Y, dump_ricoh_sp_360_408179_yellow, CHIP_MEMORY_128 , 0 },
+  //{ BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_M, dump_ricoh_sp_360_408178_magenta, CHIP_MEMORY_128 , 0 },
+  //{ BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_C, dump_ricoh_sp_360_408177_cyan, CHIP_MEMORY_128 , 0 },
+  //{ BRAND_RICOH,    PAGE_5_K,   PINOUT_GVDC, NOTE_SP_360_B, DUMP_SP_360_BLACK, CHIP_MEMORY_128 , 0 },         
   { BRAND_CANON,    PAGE_EMPTY, PINOUT_GDCV, NOTE_CANON_MC_G_02, dump_canon_mc_g02, CHIP_MEMORY_2048 , 0 }, 
   { BRAND_CANON ,   PAGE_EMPTY, PINOUT_GDCV, lcd_canon_mg_g_04, dump_canon_mg_g_04, CHIP_MEMORY_2048, 0 }, 
   { BRAND_KATUSHA,  PAGE_6_K,   PINOUT_GVDC, NOTE_KATUSHA_TK240A, dump_katusha_tk240a, CHIP_MEMORY_256 , 4 },               // 4 функция
   { BRAND_KATUSHA,  PAGE_9_K,   PINOUT_GVDC, NOTE_KATUSHA_TK240X, dump_katusha_tk240x, CHIP_MEMORY_256 , 4 },               // 4 функция  
   { BRAND_KATUSHA,  PAGE_30_K,  PINOUT_GVDC, NOTE_KATUSHA_DR240, dump_katusha_dr240, CHIP_MEMORY_256 , 5 },                  // 5 функция
-  { BRAND_KATUSHA,  PAGE_3_K,   PINOUT_GVDC, lcd_tk_133, dump_tk_133, CHIP_MEMORY_256 , 4 },
-  { BRAND_KATUSHA,  PAGE_0_7_K,   PINOUT_GVDC, lcd_thm_130_0_7_k, dump_thm_130_0_7_k, CHIP_MEMORY_256 , 4 }, 
-  { BRAND_KATUSHA,  PAGE_3_K,   PINOUT_GVDC, lcd_thm_130_3_k, dump_thm_130_3_k, CHIP_MEMORY_256 , 4 } ,
+  //{ BRAND_KATUSHA,  PAGE_3_K,   PINOUT_GVDC, lcd_tk_133, dump_tk_133, CHIP_MEMORY_256 , 4 },
+  //{ BRAND_KATUSHA,  PAGE_0_7_K,   PINOUT_GVDC, lcd_thm_130_0_7_k, dump_thm_130_0_7_k, CHIP_MEMORY_256 , 4 }, 
+  //{ BRAND_KATUSHA,  PAGE_3_K,   PINOUT_GVDC, lcd_thm_130_3_k, dump_thm_130_3_k, CHIP_MEMORY_256 , 4 } ,
   { BRAND_KATUSHA,  PAGE_12_K,   PINOUT_GVDC, lcd_pcm_130_12_k, dump_pcm_130_12_k, CHIP_MEMORY_256 , 5 } 
 
   // Последняя строка без запятой !!! А предпоследняя с запятой !!!
@@ -1973,16 +1975,16 @@ void power_off_for_chip()
   digitalWrite(POWER_PIN, LOW); // Выключаем питания на A2 пине
 }
 
-/****************************** ПОИСК ЧИПА НА ШИНЕ I2C ВЕРСИЯ 3 МОДИФИКАЦИЯ 2025-07-07 ******************************/
+/****************************** ПОИСК ЧИПА НА ШИНЕ I2C ВЕРСИЯ 3 МОДИФИКАЦИЯ 2025-07-31 ******************************/
+
 // Возвращаем TRUE (1) eсли все ок и FALSE (0) если плохо
 bool search_address_chip_3() 
 {
-  byte DeviceStatus;              // 0 это хорошо
-  byte TotalDevicesFound = 0;     // 0 это хорошо
-  //Serial.println(F("Scanning for devices...please wait")); Serial.println();
+  // Переменная для хранения статуса шины
+  byte DeviceStatus;              
   
   // Сканируем шину I2C
-  for (byte address = 0; address <= 0x7F; address++) // 0x7F это число 127
+  for (byte address = 0; address <= 127; address++) 
   {
     // Цикл начинаем со значения по умолчанию 0, значит нет ошибок
     DeviceStatus = 0;
@@ -1991,34 +1993,23 @@ bool search_address_chip_3()
     // == 0 ошибок нет
     // == 1 превышено время ожидания шины (timeOut) 
     DeviceStatus = I2c._start();
-    
+
+    // Если ошибок нет
     if (DeviceStatus == 0)
     {    
       // I2c._sendAddress  Возвращает:
       // == 0 ошибок нет
       // == 1 превышено время ожидания шины (timeOut)   
       // SLA_W(address) Узнаем можем ли писать в микросхему  
-
-      // Если нашли подходящий адрес с возможностью записи в него
       if ( I2c._sendAddress(SLA_W(address)) == 0)
       {
-        // Сохраняем адрес
+        // Сохраняем первый адрес, их может быть больше одного, а нам нужен только первый
         global_address_eeprom = address;
-        // Увеличиваем счетчик подходящих адресов
-        TotalDevicesFound++;              
+        // Выходим из цикла 
+        return true;              
       } 
-      else // Если записать нельзя то продолжаем поиск   
-      { 
-        // Отпускаем шину
-        I2c._stop();
-        
-        // Запускаем следующий цикл
-        continue;      
-      } 
-    }  
-      
-    // Обработка ошибок 
-    if (DeviceStatus >= 1)
+    }   
+    else // Иначе есть ошибка т.е. превышено время ожидания шины
     {
       lcd.clear(); 
       lcd.print(F("MAYBE PROBLEM"));  
@@ -2027,26 +2018,23 @@ bool search_address_chip_3()
       Serial.println(F("MAYBE PROBLEM WITH BUS I2C")); 
       delay (2000);
       return false;
-    }      
+    }  
+
+    // Отпускаем шину и начинаем следующий цикл
+    I2c._stop();
   }
 
   // Если устройст не найдено то возможно нет чипа или плохой контакт
-  if (TotalDevicesFound == 0)  
-  {
-    lcd.clear(); 
-    lcd.print(F("BAD CONTACT OR"));  
-    lcd.setCursor(0,1); 
-    lcd.print(F("NOT CHIP"));
-    Serial.println(F("BAD CONTACT OR NOT CHIP")); 
-    delay (2000);
-    return false;
-  }
-  else
-  {
-    return true;
-  }
-    
+  lcd.clear(); 
+  lcd.print(F("BAD CONTACT OR"));  
+  lcd.setCursor(0,1); 
+  lcd.print(F("NOT CHIP"));
+  Serial.println(F("BAD CONTACT OR NOT CHIP")); 
+  delay (2000);
+  return false;
+   
 }
+
 /****************************** ПОИСК ЧИПА НА ШИНЕ I2C ВЕРСИЯ 3 МОДИФИКАЦИЯ 2024-04-17 ******************************/
 /*
 // Возваращаем 1 если все ок и 0 если все плохо
@@ -2114,66 +2102,6 @@ bool search_address_chip_3()
 
 */
 
-/*
- * Старый код
-    byte error;
-    byte count_device = 0;
-    // Сканируем шину I2C
-    for (byte address = 0; address <= 127; address++)
-    {
-       // Переменная для ошибок 0 по умолчанию
-       error = 0; 
-       // I2c._start() возвращает 0 если все хорошо, 1 если првышено время ожидания шины, 2 и более другие ошибки
-       error = I2c._start();
-       //I2c.scan();
-       // ... 
-       if ( error == 0 ) 
-        {           
-          // I2c._sendAddress возвращает 0 если все хорошо, 1 если првышено время ожидания шины, 2 и более другие ошибки.
-          // В конце адреса надо указывать бит чтения << 1 или записи << 0
-          error = I2c._sendAddress(address << 1);
-          Serial.print("Adress 0x"); Serial.println(address, HEX);
-          // Если ошибок нет и нашли адрес то ...
-          if ( error == 0)
-          {
-              // Берем адреес шины и пытаемся считать данные с чипа по умолчанию
-              Eeprom24C01_16 eeprom(address);
-              // Инициализируем библиотеку eeprom
-              eeprom.initialize();
-              
-              // Ищем первый адрес с подходящими параметрами, их может быть больше 1 нам нужен лишь 1  
-              if (eeprom.readByte_24C04_16(0) != 0 && count_device == 0) 
-              //if (eeprom.readByte_24C01_02(0) != 0 && count_device == 0)              
-              {        
-                global_address_eeprom = address; // Сохраняем адрес чипа в памяти
-                Serial.print(F("Address chip = 0x")); Serial.println(address);  // Показываем адрес на котором сидит чип
-                // Считаем сколько нашли чипов
-                count_device = count_device + 1;
-              }         
-           }
-         }
-        
-       // Отпускаем шину с адресом, I2c._stop() возвращает 0 если все хорошо, 1 если првышено время ожидания шины, 2 и более другие ошибки
-       I2c._stop();
-    }
-    
-
-    // Сообщаем либо плохой контакт или чипа нет либо все хорошо
-    if(count_device == 0)
-    {
-      lcd.clear(); 
-      lcd.print(F("BAD CONTACT OR"));  
-      lcd.setCursor(0,1); 
-      lcd.print(F("NOT CHIP"));
-      Serial.print(F("BAD CONTACT OR NOT CHIP")); 
-      delay (2000);
-      return false; 
-    }
-    else
-    {         
-      return true;  
-    }
-    */
 /****************************** СКОРОСТНАЯ ПРОШИВКА ЧИПОВ УНИВЕРСАЛЬНАЯ БИБЛИОТЕКА ******************************/
 void firmware()
 {
@@ -2205,7 +2133,8 @@ void firmware()
      
       // Записываем массив в чип
       if ( (global_size_dump == 128) || (global_size_dump == 256) ) { eeprom.writeBytes_24C01_02(sizeArray * x, sizeArray, array_bytes); }
-      if ( (global_size_dump == 512) || (global_size_dump > 512) )  { eeprom.writeBytes_24C04_16(sizeArray * x, sizeArray, array_bytes); }    
+      if ( (global_size_dump == 512) || (global_size_dump > 512) )  { eeprom.writeBytes_24C04_16(sizeArray * x, sizeArray, array_bytes); } 
+          
       // Пауза для записи ячейки памяти
       delay(10);           
       
@@ -2220,15 +2149,17 @@ void firmware()
 
       //Чистим массив
       //array_bytes[0] = '\0';
-  }
+  }  
     
   // Медленная прошивка (прошивает по байтно) работает всегда но долго
-  // for (int x = 0; x < global_size_dump; x++)
-  // {
-  //   eeprom.writeByte_24C04_16(x, pgm_read_byte(&global_name_dump[x]) ); 
-  //   // Пауза для записи ячейки памяти
-  //   delay(10);  
-  // }
+//   for (int x = 0; x < global_size_dump; x++)
+//   {
+//     //eeprom.writeByte_24C04_16(x, pgm_read_byte(&global_name_dump[x]) );
+//     //eeprom.writeByte_24C01_02(x, pgm_read_byte(&global_name_dump[x]) );   
+//      
+//     // Пауза для записи ячейки памяти
+//     delay(10);  
+//   }
 
   // Сообщение о прошивки чипа 
   lcd.print(F("DONE !!!"));
@@ -2281,7 +2212,7 @@ void verification_dump()
     //Serial.print(F(" PROGMEM = "));
     //Serial.print(pgm_read_byte(&global_name_dump[i]), HEX);
     //Serial.print(F(" EEPROM = "));
-    //Serial.println(eeprom.readByte(i), HEX);
+    //Serial.println(eeprom.readByte_24C04_16(i), HEX);
   }
 
   // Если ошибок нет то GOOD иначе ERROR
